@@ -219,7 +219,6 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
       phone: empPhone.trim() || undefined,
       status: 'clocked_out',
       invitationStatus: 'pending',
-      pin: Math.floor(1000 + Math.random() * 9000).toString(),
       hourlyRate: 25,
     });
 
@@ -345,17 +344,9 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
             )}
 
             <button
-              onClick={() => {
-                if (
-                  window.confirm(
-                    '¿Deseas restaurar todos los colaboradores, proyectos y registros iniciales de demostración CPR?'
-                  )
-                ) {
-                  onResetData();
-                }
-              }}
+              onClick={() => onResetData()}
               className="p-2 text-xs rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-300 transition-colors cursor-pointer shadow-2xs"
-              title="Restaurar datos de muestra CPR"
+              title="Actualizar datos desde el servidor"
             >
               <RefreshCw className="w-4 h-4" />
             </button>

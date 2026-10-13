@@ -127,6 +127,7 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
   }, [activeEmployee.status, isOutsidePerimeter, selectedProject?.autoClockOut]);
 
   const handleClockInAction = async () => {
+    if (!selectedProject) return;
     setLoadingAction('clock_in');
     sound.playClockIn();
     try {

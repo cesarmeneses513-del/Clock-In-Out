@@ -8,8 +8,8 @@ export interface Employee {
   role: string;
   contractType: ContractType; // 'Internal Team' | 'ASP Contratista'
   department?: string; // deprecated, replaced by contractType
-  pin: string;
-  password?: string; // Clave de acceso
+  userId?: string; // auth.users id, set once the worker creates their password
+  pin?: string; // deprecated: sign-in is handled by Supabase Auth
   systemRole: UserRole; // 'admin' | 'manager' | 'employee'
   email?: string;
   phone?: string;
@@ -20,7 +20,6 @@ export interface Employee {
   hourlyRate: number;
   invitationStatus?: 'active' | 'pending'; // 'pending' means invited by admin, needs to create password
   invitedAt?: string;
-  invitationToken?: string;
 }
 
 export interface ProjectSite {

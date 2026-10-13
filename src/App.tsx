@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import type { Session } from '@supabase/supabase-js';
 import {
   Employee,
   ProjectSite,
@@ -7,24 +8,15 @@ import {
   LocationStamp,
 } from './types';
 import {
-  getStoredEmployees,
-  saveStoredEmployees,
-  getStoredProjects,
-  saveStoredProjects,
-  getStoredEntries,
-  saveStoredEntries,
-  getActiveEmployeeId,
-  setActiveEmployeeId,
   getActiveProjectId,
   setActiveProjectId,
-  DEFAULT_EMPLOYEES,
-  DEFAULT_PROJECTS,
-  DEFAULT_ENTRIES,
   calculateElapsedHours,
 } from './utils/storage';
+import { supabase, isSupabaseConfigured } from './utils/supabase';
+import * as db from './utils/db';
 import { getDistanceMeters, watchLocation } from './utils/geo';
 import { sound } from './utils/audio';
-import { Radio, AlertTriangle, CheckCircle2, X } from 'lucide-react';
+import { AlertTriangle, X } from 'lucide-react';
 import { Navbar } from './components/Navbar';
 import { ClockPunchCard } from './components/ClockPunchCard';
 import { WhoIsWorking } from './components/WhoIsWorking';
@@ -33,27 +25,29 @@ import { TeamManagement } from './components/TeamManagement';
 import { ManualEntryModal } from './components/ManualEntryModal';
 import { LoginScreen } from './components/LoginScreen';
 
+const StatusScreen: React.FC<{ title: string; children?: React.ReactNode }> = ({ title, children }) => (
+  <div className="min-h-screen flex flex-col items-center justify-center px-4 font-sans bg-gradient-to-br from-[#f0f6ff] via-[#ffffff] to-[#e8f1fc] text-slate-900">
+    <div className="w-full max-w-md bg-white border border-slate-200/90 rounded-3xl p-6 shadow-xl shadow-blue-900/5 space-y-3 text-center">
+      <h1 className="text-sm font-bold text-slate-900">{title}</h1>
+      {children}
+    </div>
+  </div>
+);
+
 export default function App() {
-  const [employees, setEmployees] = useState<Employee[]>(() => getStoredEmployees());
-  const [projects, setProjects] = useState<ProjectSite[]>(() => getStoredProjects());
-  const [entries, setEntries] = useState<TimeEntry[]>(() => getStoredEntries());
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [projects, setProjects] = useState<ProjectSite[]>([]);
+  const [entries, setEntries] = useState<TimeEntry[]>([]);
 
-  // User session state
-  const [currentUser, setCurrentUser] = useState<Employee | null>(() => {
-    if (typeof window === 'undefined') return null;
-    const allEmps = getStoredEmployees();
-    const savedUserId = localStorage.getItem('cpr_clock_current_user_id');
-    if (savedUserId) {
-      const found = allEmps.find((e) => e.id === savedUserId);
-      if (found) return found;
-    }
-    // Return César Meneses (admin) by default so app is immediately interactive or login
-    return allEmps[0] || null;
-  });
+  // Supabase Auth session
+  const [session, setSession] = useState<Session | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const userId = session?.user.id;
 
-  const [activeEmployeeId, setActiveEmpId] = useState<string>(() => {
-    return currentUser?.id || getActiveEmployeeId();
-  });
+  // Employee whose punch card is on screen when an admin/manager opens someone else's ('' = self)
+  const [activeEmployeeId, setActiveEmpId] = useState<string>('');
   const [activeProjectId, setActiveProjId] = useState<string>(() => getActiveProjectId());
 
   const [currentTab, setCurrentTab] = useState<ViewTab>('punch');
@@ -71,32 +65,80 @@ export default function App() {
   // Prevent multiple duplicate auto-clockout triggers
   const isAutoClockingOutRef = useRef(false);
 
-  // Sync state to local storage whenever updated
-  useEffect(() => {
-    saveStoredEmployees(employees);
-  }, [employees]);
+  // Drops responses from reloads that were superseded by a newer one
+  const reloadSeqRef = useRef(0);
 
   useEffect(() => {
-    saveStoredProjects(projects);
-  }, [projects]);
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setAuthReady(true);
+    });
+    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession);
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
 
-  useEffect(() => {
-    saveStoredEntries(entries);
-  }, [entries]);
-
-  // Sync currentUser with employees updates
-  useEffect(() => {
-    if (currentUser) {
-      const updated = employees.find((e) => e.id === currentUser.id);
-      if (updated) {
-        setCurrentUser(updated);
-      }
+  const reload = useCallback(async () => {
+    const seq = ++reloadSeqRef.current;
+    try {
+      const all = await db.fetchAll();
+      if (seq !== reloadSeqRef.current) return;
+      setEmployees(all.employees);
+      setProjects(all.projects);
+      setEntries(all.entries);
+      setDataLoaded(true);
+    } catch (err) {
+      if (seq !== reloadSeqRef.current) return;
+      console.error(err);
+      setSyncError('No se pudieron cargar los datos desde el servidor.');
+      setDataLoaded(true);
     }
-  }, [employees]);
+  }, []);
+
+  // Load data on sign-in and keep it in sync with changes made from other devices
+  useEffect(() => {
+    if (!userId) {
+      reloadSeqRef.current++;
+      setEmployees([]);
+      setProjects([]);
+      setEntries([]);
+      setDataLoaded(false);
+      setActiveEmpId('');
+      return;
+    }
+    reload();
+    const channel = supabase
+      .channel('cpr-clock-sync')
+      .on('postgres_changes', { event: '*', schema: 'public' }, () => {
+        reload();
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId, reload]);
+
+  // Persist a change to Supabase; local state was already updated optimistically
+  const sync = (write: () => Promise<void>) => {
+    write().catch((err) => {
+      console.error(err);
+      setSyncError(
+        `No se pudo guardar el cambio: ${err?.message || 'error desconocido'}. Se restauraron los datos del servidor.`
+      );
+      reload();
+    });
+  };
+
+  // Employee record linked to the signed-in account
+  const currentUser = useMemo(() => {
+    if (!userId) return null;
+    return employees.find((e) => e.userId === userId) || null;
+  }, [employees, userId]);
 
   // Current active employee object
   const activeEmployee = useMemo(() => {
-    return currentUser || employees.find((e) => e.id === activeEmployeeId) || employees[0] || null;
+    return employees.find((e) => e.id === activeEmployeeId) || currentUser;
   }, [employees, currentUser, activeEmployeeId]);
 
   // Current active shift for the active employee (if in turn)
@@ -116,31 +158,23 @@ export default function App() {
     return employees.filter((e) => e.status === 'clocked_in').length;
   }, [employees]);
 
-  // Login handler
-  const handleLogin = (emp: Employee) => {
-    setCurrentUser(emp);
-    setActiveEmpId(emp.id);
-    setActiveEmployeeId(emp.id);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('cpr_clock_current_user_id', emp.id);
-    }
-    if (emp.activeProjectId) {
-      setActiveProjId(emp.activeProjectId);
-      setActiveProjectId(emp.activeProjectId);
-    }
-  };
-
   // Logout handler
   const handleLogout = () => {
-    setCurrentUser(null);
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('cpr_clock_current_user_id');
+    supabase.auth.signOut();
+  };
+
+  // Open another employee's punch card (admin / manager)
+  const handleSelectEmployee = (emp: Employee) => {
+    setActiveEmpId(emp.id);
+    if (emp.activeProjectId) {
+      setActiveProjId(emp.activeProjectId);
     }
   };
 
-  // Switch active employee / profile
-  const handleSelectEmployee = (emp: Employee) => {
-    handleLogin(emp);
+  // Switch tab; going to the punch tab always returns to the signed-in user's own card
+  const handleSelectTab = (tab: ViewTab) => {
+    if (tab === 'punch') setActiveEmpId('');
+    setCurrentTab(tab);
   };
 
   // Switch active project
@@ -161,7 +195,7 @@ export default function App() {
     if (!emp || !proj) return;
 
     const now = new Date();
-    const newShiftId = `shift-${Date.now()}`;
+    const newShiftId = crypto.randomUUID();
     const dateStr = now.toISOString().split('T')[0];
 
     const newEntry: TimeEntry = {
@@ -183,22 +217,20 @@ export default function App() {
       verified: true,
     };
 
-    // Update entries list
-    setEntries((prev) => [newEntry, ...prev]);
+    const updatedEmp: Employee = {
+      ...emp,
+      status: 'clocked_in',
+      currentShiftId: newShiftId,
+      activeProjectId: proj.id,
+    };
 
-    // Update employee status
-    setEmployees((prev) =>
-      prev.map((e) =>
-        e.id === emp.id
-          ? {
-              ...e,
-              status: 'clocked_in',
-              currentShiftId: newShiftId,
-              activeProjectId: proj.id,
-            }
-          : e
-      )
-    );
+    setEntries((prev) => [newEntry, ...prev]);
+    setEmployees((prev) => prev.map((e) => (e.id === emp.id ? updatedEmp : e)));
+
+    sync(async () => {
+      await db.insertEntry(newEntry);
+      await db.updateEmployee(updatedEmp);
+    });
   };
 
   // Clock Out handler
@@ -211,47 +243,47 @@ export default function App() {
     const emp = employees.find((e) => e.id === targetEmpId);
     if (!emp) return;
 
-    const now = new Date();
-    const nowIso = now.toISOString();
+    const nowIso = new Date().toISOString();
 
-    // Find shift to close
+    // Close every open shift of this employee
+    const closedEntries: TimeEntry[] = entries
+      .filter((entry) => entry.employeeId === emp.id && entry.status === 'active')
+      .map((entry) => {
+        const { totalDecimalHours, totalBreakMinutes } = calculateElapsedHours(
+          entry.clockInTime,
+          nowIso,
+          entry.breakPeriods
+        );
+        return {
+          ...entry,
+          clockOutTime: nowIso,
+          status: 'completed' as const,
+          totalBreakMinutes,
+          totalHours: totalDecimalHours,
+          notes: notes ? (entry.notes ? `${entry.notes} | ${notes}` : notes) : entry.notes,
+          locationOut: location,
+          isAutoClockOut: isAutoClockOut || false,
+        };
+      });
+
+    const updatedEmp: Employee = {
+      ...emp,
+      status: 'clocked_out',
+      currentShiftId: undefined,
+      activeProjectId: undefined,
+    };
+
     setEntries((prev) =>
-      prev.map((entry) => {
-        if (entry.employeeId === emp.id && entry.status === 'active') {
-          const { totalDecimalHours, totalBreakMinutes } = calculateElapsedHours(
-            entry.clockInTime,
-            nowIso,
-            entry.breakPeriods
-          );
-
-          return {
-            ...entry,
-            clockOutTime: nowIso,
-            status: 'completed',
-            totalBreakMinutes,
-            totalHours: totalDecimalHours,
-            notes: notes ? (entry.notes ? `${entry.notes} | ${notes}` : notes) : entry.notes,
-            locationOut: location,
-            isAutoClockOut: isAutoClockOut || false,
-          };
-        }
-        return entry;
-      })
+      prev.map((entry) => closedEntries.find((c) => c.id === entry.id) || entry)
     );
+    setEmployees((prev) => prev.map((e) => (e.id === emp.id ? updatedEmp : e)));
 
-    // Update employee status
-    setEmployees((prev) =>
-      prev.map((e) =>
-        e.id === emp.id
-          ? {
-              ...e,
-              status: 'clocked_out',
-              currentShiftId: undefined,
-              activeProjectId: undefined,
-            }
-          : e
-      )
-    );
+    sync(async () => {
+      for (const closed of closedEntries) {
+        await db.updateEntry(closed);
+      }
+      await db.updateEmployee(updatedEmp);
+    });
   };
 
   // Background monitoring: if employee is clocked in and site has geofence with autoClockOut
@@ -322,9 +354,10 @@ export default function App() {
   const handleAddManualEntry = (entry: Omit<TimeEntry, 'id'>) => {
     const newEntry: TimeEntry = {
       ...entry,
-      id: `shift-manual-${Date.now()}`,
+      id: crypto.randomUUID(),
     };
     setEntries((prev) => [newEntry, ...prev]);
+    sync(() => db.insertEntry(newEntry));
   };
 
   // Delete entry
@@ -333,51 +366,58 @@ export default function App() {
     setEntries((prev) => prev.filter((e) => e.id !== id));
 
     // If deleting an ongoing shift, reset employee to clocked out
-    if (entryToDelete && entryToDelete.status === 'active') {
-      setEmployees((prev) =>
-        prev.map((emp) =>
-          emp.id === entryToDelete.employeeId
-            ? { ...emp, status: 'clocked_out', currentShiftId: undefined }
-            : emp
-        )
-      );
+    const owner =
+      entryToDelete && entryToDelete.status === 'active'
+        ? employees.find((emp) => emp.id === entryToDelete.employeeId)
+        : undefined;
+    const resetOwner: Employee | undefined = owner && {
+      ...owner,
+      status: 'clocked_out',
+      currentShiftId: undefined,
+    };
+    if (resetOwner) {
+      setEmployees((prev) => prev.map((emp) => (emp.id === resetOwner.id ? resetOwner : emp)));
     }
+
+    sync(async () => {
+      await db.deleteEntry(id);
+      if (resetOwner) await db.updateEmployee(resetOwner);
+    });
   };
 
-  // Add new employee
+  // Add new employee (creates a pending invitation; the worker sets their own password)
   const handleAddEmployee = (empData: Omit<Employee, 'id' | 'status'>) => {
     const newEmp: Employee = {
       ...empData,
-      id: `emp-${Date.now()}`,
+      id: crypto.randomUUID(),
       status: 'clocked_out',
+      invitationStatus: 'pending',
     };
     setEmployees((prev) => [...prev, newEmp]);
+    sync(() => db.insertEmployee(newEmp));
   };
 
   // Delete employee
   const handleDeleteEmployee = (id: string) => {
     setEmployees((prev) => prev.filter((e) => e.id !== id));
-    if (activeEmployeeId === id && employees.length > 1) {
-      const next = employees.find((e) => e.id !== id);
-      if (next) setActiveEmpId(next.id);
-    }
+    if (activeEmployeeId === id) setActiveEmpId('');
+    sync(() => db.deleteEmployee(id));
   };
 
   // Update employee
   const handleUpdateEmployee = (updatedEmp: Employee) => {
     setEmployees((prev) => prev.map((e) => (e.id === updatedEmp.id ? updatedEmp : e)));
-    if (currentUser?.id === updatedEmp.id) {
-      setCurrentUser(updatedEmp);
-    }
+    sync(() => db.updateEmployee(updatedEmp));
   };
 
   // Add new project
   const handleAddProject = (projData: Omit<ProjectSite, 'id'>) => {
     const newProj: ProjectSite = {
       ...projData,
-      id: `proj-${Date.now()}`,
+      id: crypto.randomUUID(),
     };
     setProjects((prev) => [...prev, newProj]);
+    sync(() => db.insertProject(newProj));
   };
 
   // Delete project
@@ -387,21 +427,13 @@ export default function App() {
       const next = projects.find((p) => p.id !== id);
       if (next) setActiveProjId(next.id);
     }
+    sync(() => db.deleteProject(id));
   };
 
   // Update existing project site
   const handleUpdateProject = (updatedProj: ProjectSite) => {
     setProjects((prev) => prev.map((p) => (p.id === updatedProj.id ? updatedProj : p)));
-  };
-
-  // Reset to default CPR sample data
-  const handleResetData = () => {
-    setEmployees(DEFAULT_EMPLOYEES);
-    setProjects(DEFAULT_PROJECTS);
-    setEntries(DEFAULT_ENTRIES);
-    setActiveEmpId(DEFAULT_EMPLOYEES[0].id);
-    setActiveProjId(DEFAULT_PROJECTS[0].id);
-    setCurrentUser(DEFAULT_EMPLOYEES[0]);
+    sync(() => db.updateProject(updatedProj));
   };
 
   // Filter recent entries for the active employee
@@ -410,45 +442,45 @@ export default function App() {
     return entries.filter((e) => e.employeeId === activeEmployee.id);
   }, [entries, activeEmployee]);
 
-  // User registration handler
-  const handleRegister = (newEmp: Employee) => {
-    setEmployees((prev) => [...prev, newEmp]);
-    handleLogin(newEmp);
-  };
-
-  // Activate invited employee (set password & login)
-  const handleActivateEmployee = (employeeId: string, password: string) => {
-    const pin = password.replace(/\D/g, '').substring(0, 6) || password;
-    let activatedEmp: Employee | null = null;
-    setEmployees((prev) =>
-      prev.map((e) => {
-        if (e.id === employeeId) {
-          activatedEmp = {
-            ...e,
-            password,
-            pin,
-            invitationStatus: 'active',
-          };
-          return activatedEmp;
-        }
-        return e;
-      })
+  if (!isSupabaseConfigured) {
+    return (
+      <StatusScreen title="Falta configurar Supabase">
+        <p className="text-xs text-slate-600">
+          Crea el archivo <code className="font-mono">.env.local</code> con{' '}
+          <code className="font-mono">VITE_SUPABASE_URL</code> y{' '}
+          <code className="font-mono">VITE_SUPABASE_ANON_KEY</code> (ver README) y reinicia la app.
+        </p>
+      </StatusScreen>
     );
-    if (activatedEmp) {
-      handleLogin(activatedEmp);
-    }
-  };
+  }
+
+  if (!authReady) {
+    return <StatusScreen title="Cargando..." />;
+  }
 
   // If no user is authenticated, show login screen
+  if (!session) {
+    return <LoginScreen />;
+  }
+
+  if (!dataLoaded) {
+    return <StatusScreen title="Cargando datos..." />;
+  }
+
+  // Signed in, but no employee record is linked to this account (e.g. it was deleted by an admin)
   if (!currentUser) {
     return (
-      <LoginScreen
-        employees={employees}
-        projects={projects}
-        onLogin={handleLogin}
-        onRegister={handleRegister}
-        onActivateEmployee={handleActivateEmployee}
-      />
+      <StatusScreen title="Tu cuenta no está vinculada a ningún colaborador">
+        <p className="text-xs text-slate-600">
+          {syncError || 'Solicita a tu administrador CPR que te agregue nuevamente a la empresa.'}
+        </p>
+        <button
+          onClick={handleLogout}
+          className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors cursor-pointer"
+        >
+          Cerrar sesión
+        </button>
+      </StatusScreen>
     );
   }
 
@@ -457,13 +489,22 @@ export default function App() {
       {/* Top Navbar */}
       <Navbar
         currentTab={currentTab}
-        onSelectTab={setCurrentTab}
+        onSelectTab={handleSelectTab}
         activeEmployee={currentUser}
         onLogout={handleLogout}
         activeCount={activeCount}
       />
 
       {/* Main App Content Viewport */}
+        {syncError && (
+          <div className="mx-4 mt-4 p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
+            <span className="flex-1">{syncError}</span>
+            <button onClick={() => setSyncError(null)} className="text-rose-500 hover:text-rose-800 cursor-pointer">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {currentTab === 'punch' && activeEmployee && (
           <ClockPunchCard
@@ -492,7 +533,7 @@ export default function App() {
               handleSelectEmployee(emp);
               setCurrentTab('punch');
             }}
-            onGoToPunchTab={() => setCurrentTab('punch')}
+            onGoToPunchTab={() => handleSelectTab('punch')}
           />
         )}
 
@@ -518,7 +559,7 @@ export default function App() {
             onAddProject={handleAddProject}
             onUpdateProject={handleUpdateProject}
             onDeleteProject={handleDeleteProject}
-            onResetData={handleResetData}
+            onResetData={reload}
           />
         )}
       </main>
