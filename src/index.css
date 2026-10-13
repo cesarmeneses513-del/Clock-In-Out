@@ -1,0 +1,130 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* Base Body Styles - Pristine White with Blue Corporate Canvas */
+body {
+  font-family: var(--font-sans);
+  background-color: #f1f5f9;
+  color: #0f172a;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom scrollbars for clean dashboards */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.4);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(71, 85, 105, 0.7);
+}
+
+/* Global Form Elements - High Contrast */
+input,
+select,
+textarea {
+  color: #0f172a !important;
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #2563eb !important;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2) !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #64748b !important;
+}
+
+/* High Contrast Headings */
+h1, h2, h3, h4, h5, h6 {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+/* Ensure colored action buttons keep crisp white text */
+button.bg-blue-600,
+button.bg-blue-700,
+button.bg-emerald-600,
+button.bg-emerald-700,
+button.bg-rose-600,
+button.bg-rose-700,
+button.bg-sky-600,
+button.bg-indigo-600,
+button.bg-purple-600 {
+  color: #ffffff !important;
+}
+
+/* White with Blue theme legacy class adaptations for dark classes */
+/* Converts any remaining .bg-slate-900 / .bg-slate-950 containers into crisp white cards */
+.bg-slate-900,
+.bg-slate-900\/95,
+.bg-slate-900\/90,
+.bg-slate-900\/80,
+.bg-slate-900\/60 {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06);
+}
+
+.bg-slate-950,
+.bg-slate-950\/80,
+.bg-slate-950\/70,
+.bg-slate-950\/60,
+.bg-slate-950\/50,
+.bg-slate-950\/40 {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+.border-slate-800,
+.border-slate-800\/90,
+.border-slate-800\/80,
+.border-slate-800\/60,
+.border-slate-700,
+.border-slate-700\/80 {
+  border-color: #e2e8f0 !important;
+}
+
+/* In cards, text-white (that isn't on a button or avatar) becomes dark high contrast text */
+.bg-white h1.text-white,
+.bg-white h2.text-white,
+.bg-white h3.text-white,
+.bg-white span.text-white:not(button *):not([class*="bg-blue"]):not([class*="bg-emerald"]):not([class*="bg-rose"]):not([class*="rounded-full"]):not([class*="rounded-2xl"]):not([class*="rounded-xl"]),
+.bg-white div.text-white:not(button *):not([class*="bg-blue"]):not([class*="bg-emerald"]):not([class*="bg-rose"]):not([class*="rounded-full"]):not([class*="rounded-2xl"]):not([class*="rounded-xl"]),
+.bg-slate-900 h1.text-white,
+.bg-slate-900 h2.text-white,
+.bg-slate-900 h3.text-white,
+.bg-slate-900 span.text-white:not(button *):not([class*="bg-blue"]):not([class*="bg-emerald"]):not([class*="bg-rose"]):not([class*="rounded-full"]):not([class*="rounded-2xl"]):not([class*="rounded-xl"]),
+.bg-slate-900 div.text-white:not(button *):not([class*="bg-blue"]):not([class*="bg-emerald"]):not([class*="bg-rose"]):not([class*="rounded-full"]):not([class*="rounded-2xl"]):not([class*="rounded-xl"]) {
+  color: #0f172a !important;
+}
+
+/* Fix light gray text to be sharp readable dark slate */
+.bg-white .text-slate-400,
+.bg-slate-900 .text-slate-400,
+.bg-slate-950 .text-slate-400 {
+  color: #475569 !important;
+}
+
+.bg-white .text-slate-300,
+.bg-slate-900 .text-slate-300,
+.bg-slate-950 .text-slate-300 {
+  color: #334155 !important;
+}

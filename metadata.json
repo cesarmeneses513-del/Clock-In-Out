@@ -1,0 +1,7 @@
+{
+  "name": "CPR Clock In/Out - Control de Asistencia",
+  "description": "Sistema de registro de asistencia con control de geocerca automática por GPS, roles de usuario, colaboradores Internal Team y contratistas ASP, y cronómetro de tiempo transcurrido.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
