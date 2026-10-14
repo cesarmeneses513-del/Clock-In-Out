@@ -509,6 +509,7 @@ export default function App() {
         {currentTab === 'punch' && activeEmployee && (
           <ClockPunchCard
             activeEmployee={activeEmployee}
+            isOwnCard={activeEmployee.id === currentUser.id}
             projects={projects}
             activeProjectId={activeProjectId}
             onSelectProject={handleSelectProject}

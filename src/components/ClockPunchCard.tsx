@@ -14,6 +14,8 @@ import { captureCurrentLocation, getDistanceMeters } from '../utils/geo';
 
 interface ClockPunchCardProps {
   activeEmployee: Employee;
+  // False when an admin / manager has opened someone else's card: the device location is then not the worker's
+  isOwnCard: boolean;
   projects: ProjectSite[];
   activeProjectId: string;
   onSelectProject: (projectId: string) => void;
@@ -25,6 +27,7 @@ interface ClockPunchCardProps {
 
 export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
   activeEmployee,
+  isOwnCard,
   projects,
   activeProjectId,
   onSelectProject,
@@ -38,6 +41,8 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
   const [loadingAction, setLoadingAction] = useState<'clock_in' | 'clock_out' | null>(null);
   const [gpsLocation, setGpsLocation] = useState<LocationStamp | null>(null);
   const [, setGpsLoading] = useState(false);
+  // True once the first location attempt has finished, whether or not it succeeded
+  const [gpsChecked, setGpsChecked] = useState(false);
   const [lastNotification, setLastNotification] = useState<{
     type: 'success' | 'warning' | 'info';
     message: string;
@@ -76,6 +81,7 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
       // Background silent capture
     } finally {
       setGpsLoading(false);
+      setGpsChecked(true);
     }
   };
 
@@ -98,7 +104,52 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
   }, []);
 
   const isClockedIn = activeEmployee.status === 'clocked_in';
-  const selectedProject = projects.find((p) => p.id === activeProjectId) || projects[0];
+
+  const hasGeofence = (p: ProjectSite) => p.latitude !== undefined && p.longitude !== undefined;
+  const distanceTo = (p: ProjectSite): number | null =>
+    gpsLocation && p.latitude !== undefined && p.longitude !== undefined
+      ? getDistanceMeters(gpsLocation.latitude, gpsLocation.longitude, p.latitude, p.longitude)
+      : null;
+  const formatDistance = (metres: number) =>
+    metres < 1000 ? `${metres} m` : `${(metres / 1000).toFixed(1)} km`;
+
+  // Sites offered for clock-in: active ones whose geofence contains the worker (nearest first),
+  // plus active sites with no location, which have no geofence to check
+  const activeSites = projects.filter((p) => p.active !== false);
+  const byDistance = (a: ProjectSite, b: ProjectSite) => (distanceTo(a) ?? 0) - (distanceTo(b) ?? 0);
+  const nearbySites = activeSites
+    .filter((p) => {
+      const d = distanceTo(p);
+      return d !== null && d <= (p.geofenceRadius || 150);
+    })
+    .sort(byDistance);
+  const openSites = activeSites.filter((p) => !hasGeofence(p));
+  const nearestSite = gpsLocation ? activeSites.filter(hasGeofence).sort(byDistance)[0] : undefined;
+
+  // While on shift the site is the one the shift was started at
+  const shiftProject =
+    isClockedIn && activeShift ? projects.find((p) => p.id === activeShift.projectId) : undefined;
+  const selectableProjects = shiftProject
+    ? [shiftProject]
+    : isClockedIn
+    ? projects
+    : isOwnCard
+    ? [...nearbySites, ...openSites]
+    : activeSites;
+  const selectedProject: ProjectSite | undefined =
+    shiftProject || selectableProjects.find((p) => p.id === activeProjectId) || selectableProjects[0];
+
+  const siteNotice = isClockedIn || !isOwnCard
+    ? null
+    : !gpsLocation
+    ? gpsChecked
+      ? 'Location is off. Turn on location access to see the sites near you.'
+      : 'Finding your location...'
+    : nearbySites.length === 0
+    ? nearestSite
+      ? `You are not inside any site area. Nearest: ${nearestSite.name} (${formatDistance(distanceTo(nearestSite) ?? 0)} away).`
+      : 'You are not inside any site area.'
+    : null;
 
   // Geofence Radius calculations (active in background)
   const radius = selectedProject?.geofenceRadius || 150;
@@ -117,6 +168,7 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
   // Auto-clockout detection in background when clocked in and exiting perimeter
   useEffect(() => {
     if (
+      isOwnCard &&
       activeEmployee.status === 'clocked_in' &&
       isOutsidePerimeter &&
       selectedProject?.autoClockOut !== false &&
@@ -151,7 +203,7 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
     }
     try {
       const autoNote = isAuto
-        ? `[AUTOMATIC GEOFENCE CLOCK-OUT] Employee detected ${distance || 'more than ' + radius}m outside the perimeter of ${selectedProject.name}.`
+        ? `[AUTOMATIC GEOFENCE CLOCK-OUT] Employee detected ${distance || 'more than ' + radius}m outside the perimeter of ${selectedProject?.name}.`
         : undefined;
       const finalNotes = notes ? (autoNote ? `${autoNote} | ${notes}` : notes) : autoNote;
 
@@ -159,7 +211,7 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
       setLastNotification({
         type: isAuto ? 'warning' : 'info',
         message: isAuto
-          ? `Automatic clock-out recorded! You left the allowed ${radius}m radius of ${selectedProject.name} (detected at ${distance}m).`
+          ? `Automatic clock-out recorded! You left the allowed ${radius}m radius of ${selectedProject?.name} (detected at ${distance}m).`
           : `Clock-out recorded at ${formatTimeDisplay(new Date().toISOString())}! Shift completed.`,
       });
       setNotes('');
@@ -310,7 +362,7 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
           ) : (
             <button
               onClick={handleClockInAction}
-              disabled={loadingAction !== null}
+              disabled={loadingAction !== null || !selectedProject}
               className="w-full py-4 sm:py-5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black text-base sm:text-lg shadow-lg shadow-blue-600/30 flex items-center justify-center gap-3 transition-all transform active:scale-[0.99] disabled:opacity-50 cursor-pointer"
             >
               <Play className="w-5 h-5 fill-current" />
@@ -329,22 +381,36 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
               Site / Location
             </label>
 
-            <select
-              value={activeProjectId}
-              onChange={(e) => onSelectProject(e.target.value)}
-              disabled={isClockedIn}
-              className="w-full bg-white border-2 border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:opacity-75 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-2xs"
-            >
-              {projects.map((proj) => (
-                <option key={proj.id} value={proj.id}>
-                  📍 {proj.address || proj.name}
-                </option>
-              ))}
-            </select>
+            {selectableProjects.length > 0 && (
+              <>
+                <select
+                  value={selectedProject?.id || ''}
+                  onChange={(e) => onSelectProject(e.target.value)}
+                  disabled={isClockedIn}
+                  className="w-full bg-white border-2 border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:opacity-75 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-2xs"
+                >
+                  {selectableProjects.map((proj) => {
+                    const d = distanceTo(proj);
+                    return (
+                      <option key={proj.id} value={proj.id}>
+                        📍 {proj.name}
+                        {d !== null ? ` · ${formatDistance(d)}` : ''}
+                      </option>
+                    );
+                  })}
+                </select>
 
-            <p className="text-xs font-semibold text-slate-700 truncate pl-0.5">
-              {selectedProject?.address}
-            </p>
+                {selectedProject?.address && (
+                  <p className="text-xs font-semibold text-slate-700 truncate pl-0.5">
+                    {selectedProject.address}
+                  </p>
+                )}
+              </>
+            )}
+
+            {siteNotice && (
+              <p className="text-xs font-semibold text-amber-800 pl-0.5">{siteNotice}</p>
+            )}
           </div>
         </div>
 

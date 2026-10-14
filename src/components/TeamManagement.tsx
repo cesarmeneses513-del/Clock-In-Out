@@ -96,11 +96,12 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
   const [projName, setProjName] = useState('');
   const [projCode, setProjCode] = useState('');
   const [projAddress, setProjAddress] = useState('');
-  const [projClient, setProjClient] = useState('CPR Construction');
+  const [projClient, setProjClient] = useState('CPR Facade Upgrades');
   const [projLatitude, setProjLatitude] = useState('');
   const [projLongitude, setProjLongitude] = useState('');
   const [projRadius, setProjRadius] = useState<number>(150);
   const [projAutoClockOut, setProjAutoClockOut] = useState<boolean>(true);
+  const [projActive, setProjActive] = useState<boolean>(true);
   const [isCapturingGps, setIsCapturingGps] = useState(false);
   const [gpsCaptureStatus, setGpsCaptureStatus] = useState<string | null>(null);
   const [isGeocoding, setIsGeocoding] = useState(false);
@@ -119,11 +120,12 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     setProjName('');
     setProjCode(nextSiteCode());
     setProjAddress('');
-    setProjClient('CPR Construction');
-    setProjLatitude('-33.8688');
-    setProjLongitude('151.2093');
+    setProjClient('CPR Facade Upgrades');
+    setProjLatitude('');
+    setProjLongitude('');
     setProjRadius(150);
     setProjAutoClockOut(true);
+    setProjActive(true);
     setGpsCaptureStatus(null);
     setGeocodeStatus(null);
     setShowProjectModal(true);
@@ -134,11 +136,12 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     setProjName(proj.name);
     setProjCode(proj.code);
     setProjAddress(proj.address);
-    setProjClient(proj.client || 'CPR Construction');
-    setProjLatitude(proj.latitude !== undefined ? proj.latitude.toString() : '-33.8688');
-    setProjLongitude(proj.longitude !== undefined ? proj.longitude.toString() : '151.2093');
+    setProjClient(proj.client || 'CPR Facade Upgrades');
+    setProjLatitude(proj.latitude !== undefined ? proj.latitude.toString() : '');
+    setProjLongitude(proj.longitude !== undefined ? proj.longitude.toString() : '');
     setProjRadius(proj.geofenceRadius || 150);
     setProjAutoClockOut(proj.autoClockOut !== false);
+    setProjActive(proj.active !== false);
     setGpsCaptureStatus(null);
     setGeocodeStatus(null);
     setShowProjectModal(true);
@@ -268,15 +271,17 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     setCopiedLink(false);
   };
 
-  const mapLatitude = Number.isFinite(parseFloat(projLatitude)) ? parseFloat(projLatitude) : -33.8688;
-  const mapLongitude = Number.isFinite(parseFloat(projLongitude)) ? parseFloat(projLongitude) : 151.2093;
+  // Undefined while the site has no location (no geofence: workers can clock in from anywhere)
+  const hasProjLocation = Number.isFinite(parseFloat(projLatitude)) && Number.isFinite(parseFloat(projLongitude));
+  const mapLatitude = hasProjLocation ? parseFloat(projLatitude) : undefined;
+  const mapLongitude = hasProjLocation ? parseFloat(projLongitude) : undefined;
 
   const handleSaveProject = (e: React.FormEvent) => {
     e.preventDefault();
     if (!projName.trim()) return;
 
-    const lat = projLatitude ? parseFloat(projLatitude) : -33.8688;
-    const lon = projLongitude ? parseFloat(projLongitude) : 151.2093;
+    const lat = mapLatitude;
+    const lon = mapLongitude;
 
     if (editingProjectId && onUpdateProject) {
       const existing = projects.find((p) => p.id === editingProjectId);
@@ -287,8 +292,9 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
           code: projCode.trim() || existing.code,
           address: projAddress.trim() || 'On-site address',
           client: projClient.trim(),
-          latitude: isNaN(lat) ? undefined : lat,
-          longitude: isNaN(lon) ? undefined : lon,
+          active: projActive,
+          latitude: lat,
+          longitude: lon,
           geofenceRadius: projRadius,
           autoClockOut: projAutoClockOut,
         });
@@ -299,9 +305,9 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
         code: projCode.trim() || nextSiteCode(),
         address: projAddress.trim() || 'On-site address',
         client: projClient.trim(),
-        active: true,
-        latitude: isNaN(lat) ? undefined : lat,
-        longitude: isNaN(lon) ? undefined : lon,
+        active: projActive,
+        latitude: lat,
+        longitude: lon,
         geofenceRadius: projRadius,
         autoClockOut: projAutoClockOut,
       });
@@ -1032,7 +1038,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                   <label className="text-xs text-slate-900 font-bold block mb-1">Client / Area</label>
                   <input
                     type="text"
-                    placeholder="e.g. CPR Construction"
+                    placeholder="e.g. CPR Facade Upgrades"
                     value={projClient}
                     onChange={(e) => setProjClient(e.target.value)}
                     className="w-full bg-white border-2 border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
@@ -1093,9 +1099,29 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                     }}
                   />
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-mono font-bold text-slate-700">
-                      {mapLatitude.toFixed(6)}, {mapLongitude.toFixed(6)}
-                    </span>
+                    {mapLatitude !== undefined && mapLongitude !== undefined ? (
+                      <span className="text-xs font-mono font-bold text-slate-700 flex items-center gap-2">
+                        {mapLatitude.toFixed(6)}, {mapLongitude.toFixed(6)}
+                        {isOnlyAdmin && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setProjLatitude('');
+                              setProjLongitude('');
+                              setGeocodeStatus(null);
+                              setGpsCaptureStatus(null);
+                            }}
+                            className="font-sans text-rose-700 hover:text-rose-900 underline cursor-pointer"
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </span>
+                    ) : (
+                      <span className="text-xs font-bold text-amber-800">
+                        No location set: workers can clock in here from anywhere
+                      </span>
+                    )}
                     {isOnlyAdmin && (
                       <button
                         type="button"
@@ -1213,6 +1239,22 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                   </div>
                 </div>
               )}
+
+              <div className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  id="siteActiveCheck"
+                  checked={projActive}
+                  onChange={(e) => setProjActive(e.target.checked)}
+                  className="w-4 h-4 mt-0.5 rounded accent-blue-600 cursor-pointer"
+                />
+                <label htmlFor="siteActiveCheck" className="text-xs text-slate-800 cursor-pointer">
+                  <strong className="text-slate-900 block font-bold">Active site</strong>
+                  <span className="text-xs text-slate-600 block mt-0.5 font-medium">
+                    Inactive sites are hidden from the time clock, so nobody can clock in there.
+                  </span>
+                </label>
+              </div>
 
               <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-200">
                 <button
