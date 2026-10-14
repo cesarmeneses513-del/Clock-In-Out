@@ -78,6 +78,9 @@ export interface TimeEntry {
   isAutoClockOut?: boolean;
   device?: string;
   verified?: boolean;
+  // Closed by the server because nobody clocked out; an admin should confirm the clock-out time.
+  // Undefined until the needs_review column exists in the database.
+  needsReview?: boolean;
 }
 
 export type ViewTab = 'punch' | 'who_is_working' | 'timesheets' | 'team_projects';

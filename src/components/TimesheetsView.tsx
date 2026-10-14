@@ -8,9 +8,11 @@ import {
   Shield,
   MapPin,
   Radio,
+  ClipboardCheck,
+  X,
 } from 'lucide-react';
 import { Employee, ProjectSite, TimeEntry } from '../types';
-import { formatTimeDisplay, exportEntriesToCSV } from '../utils/storage';
+import { formatTimeDisplay, exportEntriesToCSV, calculateElapsedHours } from '../utils/storage';
 
 interface TimesheetsViewProps {
   currentUser: Employee;
@@ -18,6 +20,7 @@ interface TimesheetsViewProps {
   employees: Employee[];
   projects: ProjectSite[];
   onDeleteEntry: (id: string) => void;
+  onUpdateEntry: (entry: TimeEntry) => void;
   onOpenManualEntry: () => void;
   // False while only recent entries are loaded; "All" asks for the rest
   fullHistory: boolean;
@@ -30,6 +33,7 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
   employees,
   projects,
   onDeleteEntry,
+  onUpdateEntry,
   onOpenManualEntry,
   fullHistory,
   onLoadFullHistory,
@@ -39,7 +43,49 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
   const [periodFilter, setPeriodFilter] = useState<'all' | 'today' | 'week' | 'month'>(fullHistory ? 'all' : 'month');
 
+  const [reviewOnly, setReviewOnly] = useState(false);
+
+  // Entry whose clock-out an admin is correcting, and the HH:MM typed for it
+  const [reviewEntry, setReviewEntry] = useState<TimeEntry | null>(null);
+  const [reviewOutTime, setReviewOutTime] = useState('');
+  const [reviewError, setReviewError] = useState<string | null>(null);
+
   const isAdminOrManager = currentUser.systemRole === 'admin' || currentUser.systemRole === 'manager';
+
+  const openReview = (entry: TimeEntry) => {
+    const out = new Date(entry.clockOutTime || entry.clockInTime);
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    setReviewOutTime(`${pad(out.getHours())}:${pad(out.getMinutes())}`);
+    setReviewError(null);
+    setReviewEntry(entry);
+  };
+
+  const saveReview = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reviewEntry) return;
+    const [hours, minutes] = reviewOutTime.split(':').map(Number);
+    // Same calendar day as the clock-in, at the corrected time
+    const out = new Date(reviewEntry.clockInTime);
+    out.setHours(hours, minutes, 0, 0);
+    if (isNaN(out.getTime()) || out.getTime() <= new Date(reviewEntry.clockInTime).getTime()) {
+      setReviewError('Clock-out time must be after clock-in time');
+      return;
+    }
+    const outIso = out.toISOString();
+    const { totalDecimalHours, totalBreakMinutes } = calculateElapsedHours(
+      reviewEntry.clockInTime,
+      outIso,
+      reviewEntry.breakPeriods
+    );
+    onUpdateEntry({
+      ...reviewEntry,
+      clockOutTime: outIso,
+      totalHours: totalDecimalHours,
+      totalBreakMinutes,
+      needsReview: reviewEntry.needsReview === undefined ? undefined : false,
+    });
+    setReviewEntry(null);
+  };
 
   // Role-based scoping: standard collaborator can ONLY see their own entries
   const visibleEntries = isAdminOrManager
@@ -47,7 +93,11 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
     : entries.filter((e) => e.employeeId === currentUser.id);
 
   // Filtered dataset
+  const needsReviewCount = visibleEntries.filter((e) => e.needsReview).length;
+
   const filtered = visibleEntries.filter((entry) => {
+    if (reviewOnly && !entry.needsReview) return false;
+
     // Employee filter
     if (selectedEmployeeId !== 'all' && entry.employeeId !== selectedEmployeeId) {
       return false;
@@ -204,6 +254,20 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
               <Download className="w-4 h-4 text-slate-700" />
               <span>{isAdminOrManager ? 'Export to Excel (CSV)' : 'Download My Hours (CSV)'}</span>
             </button>
+
+            {isAdminOrManager && (needsReviewCount > 0 || reviewOnly) && (
+              <button
+                onClick={() => setReviewOnly(!reviewOnly)}
+                className={`px-3.5 py-2 text-xs font-bold rounded-xl border flex items-center gap-2 transition-colors cursor-pointer ${
+                  reviewOnly
+                    ? 'bg-amber-500 text-white border-amber-500'
+                    : 'bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300'
+                }`}
+              >
+                <ClipboardCheck className="w-4 h-4" />
+                <span>Needs review ({needsReviewCount})</span>
+              </button>
+            )}
 
             {isAdminOrManager && (
               <button
@@ -431,12 +495,31 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
                               Auto Geofence
                             </span>
                           )}
+                          {entry.needsReview && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 inline-flex items-center gap-1">
+                              <ClipboardCheck className="w-2.5 h-2.5 text-amber-700" />
+                              Auto closed · Review
+                            </span>
+                          )}
                         </div>
                       </td>
 
                       {/* Actions (Only Admin/Manager) */}
                       {isAdminOrManager && (
                         <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                          {entry.status === 'completed' && (
+                            <button
+                              onClick={() => openReview(entry)}
+                              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                                entry.needsReview
+                                  ? 'text-amber-700 hover:text-amber-900 hover:bg-amber-50'
+                                  : 'text-slate-500 hover:text-blue-700 hover:bg-blue-50'
+                              }`}
+                              title="Review / correct clock-out time"
+                            >
+                              <ClipboardCheck className="w-4 h-4" />
+                            </button>
+                          )}
                           <button
                             onClick={() => {
                               if (
@@ -462,6 +545,79 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
           </table>
         </div>
       </div>
+
+      {/* Review / correct clock-out (Admin / Manager) */}
+      {reviewEntry && (
+        <div className="fixed inset-0 z-50 flex overflow-y-auto p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <form
+            onSubmit={saveReview}
+            className="m-auto w-full max-w-sm bg-white border border-slate-200 rounded-3xl p-6 shadow-2xl space-y-4"
+          >
+            <div className="flex items-start justify-between pb-3 border-b border-slate-200">
+              <div>
+                <h2 className="text-base font-black text-slate-900">Review Clock-Out</h2>
+                <p className="text-xs text-slate-600 font-medium mt-0.5">
+                  {reviewEntry.employeeName} · {reviewEntry.date}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReviewEntry(null)}
+                className="p-1 rounded-lg text-slate-500 hover:text-slate-900 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {reviewError && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-300 text-rose-900 text-xs font-bold">
+                {reviewError}
+              </div>
+            )}
+
+            <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5 text-xs">
+              <div className="flex justify-between">
+                <span className="text-slate-600 font-medium">Site:</span>
+                <span className="font-bold text-slate-900 truncate max-w-[180px]">{reviewEntry.projectName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600 font-medium">Clock in:</span>
+                <span className="font-mono font-bold text-emerald-800">{formatTimeDisplay(reviewEntry.clockInTime)}</span>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-slate-900 block mb-1">Clock-Out Time</label>
+              <input
+                type="time"
+                required
+                value={reviewOutTime}
+                onChange={(e) => setReviewOutTime(e.target.value)}
+                className="w-full bg-white border-2 border-slate-300 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-blue-600 font-mono"
+              />
+              <p className="text-xs text-slate-600 mt-1 font-medium">
+                Saving recalculates the hours and marks the entry as reviewed.
+              </p>
+            </div>
+
+            <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-200">
+              <button
+                type="button"
+                onClick={() => setReviewEntry(null)}
+                className="px-4 py-2 text-xs font-bold text-slate-700 hover:text-slate-900 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-5 py-2.5 text-xs font-black bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md cursor-pointer"
+              >
+                Save
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 };

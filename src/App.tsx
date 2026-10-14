@@ -396,6 +396,12 @@ export default function App() {
     sync(() => db.insertEntry(newEntry));
   };
 
+  // Update entry (admin correcting a clock-out time)
+  const handleUpdateEntry = (updated: TimeEntry) => {
+    setEntries((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
+    sync(() => db.updateEntry(updated));
+  };
+
   // Delete entry
   const handleDeleteEntry = (id: string) => {
     const entryToDelete = entries.find((e) => e.id === id);
@@ -582,6 +588,7 @@ export default function App() {
             projects={projects}
             onOpenManualEntry={() => setShowManualEntryModal(true)}
             onDeleteEntry={handleDeleteEntry}
+            onUpdateEntry={handleUpdateEntry}
             fullHistory={fullHistory}
             onLoadFullHistory={loadFullHistory}
           />

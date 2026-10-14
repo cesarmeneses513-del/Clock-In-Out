@@ -381,6 +381,12 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
           )}
         </div>
 
+        {isClockedIn && isOwnCard && (
+          <p className="-mt-2 pb-4 text-center text-[11px] font-medium text-slate-600">
+            Remember to clock out. Shifts still open at 4:30 pm are closed automatically.
+          </p>
+        )}
+
         {/* 2. Site location: shows the address only */}
         <div className="pt-4 border-t border-slate-200">
           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">

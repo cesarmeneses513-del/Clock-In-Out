@@ -107,11 +107,14 @@ function toEntry(r: Row): TimeEntry {
     isAutoClockOut: r.is_auto_clock_out ?? false,
     device: r.device ?? undefined,
     verified: r.verified ?? false,
+    needsReview: r.needs_review ?? undefined,
   };
 }
 
 function fromEntry(e: TimeEntry): Row {
   return {
+    // Left out while unknown so saves keep working before the column is added
+    ...(e.needsReview !== undefined ? { needs_review: e.needsReview } : {}),
     id: e.id,
     employee_id: e.employeeId || null,
     employee_name: e.employeeName,
