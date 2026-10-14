@@ -19,6 +19,9 @@ interface TimesheetsViewProps {
   projects: ProjectSite[];
   onDeleteEntry: (id: string) => void;
   onOpenManualEntry: () => void;
+  // False while only recent entries are loaded; "All" asks for the rest
+  fullHistory: boolean;
+  onLoadFullHistory: () => void;
 }
 
 export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
@@ -28,11 +31,13 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
   projects,
   onDeleteEntry,
   onOpenManualEntry,
+  fullHistory,
+  onLoadFullHistory,
 }) => {
   const [search, setSearch] = useState('');
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('all');
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
-  const [periodFilter, setPeriodFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
+  const [periodFilter, setPeriodFilter] = useState<'all' | 'today' | 'week' | 'month'>(fullHistory ? 'all' : 'month');
 
   const isAdminOrManager = currentUser.systemRole === 'admin' || currentUser.systemRole === 'manager';
 
@@ -217,7 +222,10 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
           {/* Period selector */}
           <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200">
             <button
-              onClick={() => setPeriodFilter('all')}
+              onClick={() => {
+                setPeriodFilter('all');
+                onLoadFullHistory();
+              }}
               className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
                 periodFilter === 'all'
                   ? 'bg-blue-600 text-white shadow-xs'

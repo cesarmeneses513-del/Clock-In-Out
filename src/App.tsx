@@ -68,6 +68,10 @@ export default function App() {
   // Drops responses from reloads that were superseded by a newer one
   const reloadSeqRef = useRef(0);
 
+  // Only recent time entries are loaded until someone asks for the full history
+  const [fullHistory, setFullHistory] = useState(false);
+  const fullHistoryRef = useRef(false);
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
@@ -82,7 +86,7 @@ export default function App() {
   const reload = useCallback(async () => {
     const seq = ++reloadSeqRef.current;
     try {
-      const all = await db.fetchAll();
+      const all = await db.fetchAll({ fullHistory: fullHistoryRef.current });
       if (seq !== reloadSeqRef.current) return;
       setEmployees(all.employees);
       setProjects(all.projects);
@@ -96,6 +100,28 @@ export default function App() {
     }
   }, []);
 
+  // Merge one realtime change into local state
+  const applyChange = useCallback((change: db.RowChange) => {
+    const merge = <T extends { id: string }>(list: T[], record: T | undefined, prepend: boolean): T[] => {
+      if (!record) return list.filter((item) => item.id !== change.id);
+      if (list.some((item) => item.id === change.id)) {
+        return list.map((item) => (item.id === change.id ? record : item));
+      }
+      return prepend ? [record, ...list] : [...list, record];
+    };
+    if (change.table === 'employees') setEmployees((prev) => merge(prev, change.record, false));
+    else if (change.table === 'projects') setProjects((prev) => merge(prev, change.record, false));
+    else setEntries((prev) => merge(prev, change.record, true));
+  }, []);
+
+  // Timesheets "All": fetch the complete history once
+  const loadFullHistory = useCallback(() => {
+    if (fullHistoryRef.current) return;
+    fullHistoryRef.current = true;
+    setFullHistory(true);
+    reload();
+  }, [reload]);
+
   // Load data on sign-in and keep it in sync with changes made from other devices
   useEffect(() => {
     if (!userId) {
@@ -105,19 +131,29 @@ export default function App() {
       setEntries([]);
       setDataLoaded(false);
       setActiveEmpId('');
+      fullHistoryRef.current = false;
+      setFullHistory(false);
       return;
     }
     reload();
+    // Each change arrives with its row, so it is merged in place instead of re-downloading every table
+    let subscribedBefore = false;
     const channel = supabase
       .channel('cpr-clock-sync')
-      .on('postgres_changes', { event: '*', schema: 'public' }, () => {
-        reload();
+      .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
+        const change = db.toRowChange(payload);
+        if (change) applyChange(change);
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status !== 'SUBSCRIBED') return;
+        // After a dropped connection (phone asleep, network change) changes may have been missed
+        if (subscribedBefore) reload();
+        subscribedBefore = true;
+      });
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId, reload]);
+  }, [userId, reload, applyChange]);
 
   // Persist a change to Supabase; local state was already updated optimistically
   const sync = (write: () => Promise<void>) => {
@@ -546,6 +582,8 @@ export default function App() {
             projects={projects}
             onOpenManualEntry={() => setShowManualEntryModal(true)}
             onDeleteEntry={handleDeleteEntry}
+            fullHistory={fullHistory}
+            onLoadFullHistory={loadFullHistory}
           />
         )}
 

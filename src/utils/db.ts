@@ -135,17 +135,63 @@ function fromEntry(e: TimeEntry): Row {
   };
 }
 
+// ---- Realtime --------------------------------------------------------------
+
+// Realtime may send timestamps as "2026-10-14 01:02:03+00", which Safari cannot parse
+function normalizeRow(row: Row): Row {
+  const out: Row = {};
+  for (const [key, value] of Object.entries(row)) {
+    out[key] =
+      typeof value === 'string' && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d+)?([+-]\d{2}(:\d{2})?)?$/.test(value)
+        ? value.replace(' ', 'T').replace(/([+-]\d{2})$/, '$1:00')
+        : value;
+  }
+  return out;
+}
+
+export type RowChange =
+  | { table: 'employees'; id: string; record?: Employee }
+  | { table: 'projects'; id: string; record?: ProjectSite }
+  | { table: 'time_entries'; id: string; record?: TimeEntry };
+
+// Turns a postgres_changes payload into a typed change; record is absent for deletes
+export function toRowChange(payload: { table: string; eventType: string; new: Row; old: Row }): RowChange | null {
+  const deleted = payload.eventType === 'DELETE';
+  const row = deleted ? payload.old : payload.new;
+  if (!row?.id) return null;
+  const data = deleted ? undefined : normalizeRow(row);
+  switch (payload.table) {
+    case 'employees':
+      return { table: 'employees', id: row.id, record: data && toEmployee(data) };
+    case 'projects':
+      return { table: 'projects', id: row.id, record: data && toProject(data) };
+    case 'time_entries':
+      return { table: 'time_entries', id: row.id, record: data && toEntry(data) };
+    default:
+      return null;
+  }
+}
+
 // ---- Queries ---------------------------------------------------------------
 
-export async function fetchAll(): Promise<{
+// Days of time entries loaded by default; older history is only fetched on request
+export const RECENT_ENTRIES_DAYS = 35;
+
+export async function fetchAll(options: { fullHistory?: boolean } = {}): Promise<{
   employees: Employee[];
   projects: ProjectSite[];
   entries: TimeEntry[];
 }> {
+  let entriesQuery = supabase.from('time_entries').select('*').order('clock_in_time', { ascending: false });
+  if (!options.fullHistory) {
+    const since = new Date(Date.now() - RECENT_ENTRIES_DAYS * 24 * 60 * 60 * 1000).toISOString();
+    // Open shifts are always included, however old
+    entriesQuery = entriesQuery.or(`clock_in_time.gte.${since},status.neq.completed`);
+  }
   const [emps, projs, ents] = await Promise.all([
     supabase.from('employees').select('*').order('created_at', { ascending: true }),
     supabase.from('projects').select('*').order('created_at', { ascending: true }),
-    supabase.from('time_entries').select('*').order('clock_in_time', { ascending: false }),
+    entriesQuery,
   ]);
   const error = emps.error || projs.error || ents.error;
   if (error) throw error;
