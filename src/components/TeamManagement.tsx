@@ -317,17 +317,19 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
             <Users className="w-4 h-4" />
             <span>{isAdminOrManager ? `Employees (${employees.length})` : 'My Profile'}</span>
           </button>
-          <button
-            onClick={() => setActiveSubTab('projects')}
-            className={`px-4 py-2 text-xs font-bold rounded-lg flex items-center gap-2 transition-colors cursor-pointer ${
-              activeSubTab === 'projects'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'text-slate-700 hover:text-slate-900 hover:bg-white'
-            }`}
-          >
-            <Building2 className="w-4 h-4" />
-            <span>Sites & Projects ({projects.length})</span>
-          </button>
+          {isAdminOrManager && (
+            <button
+              onClick={() => setActiveSubTab('projects')}
+              className={`px-4 py-2 text-xs font-bold rounded-lg flex items-center gap-2 transition-colors cursor-pointer ${
+                activeSubTab === 'projects'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-slate-700 hover:text-slate-900 hover:bg-white'
+              }`}
+            >
+              <Building2 className="w-4 h-4" />
+              <span>Sites & Projects ({projects.length})</span>
+            </button>
+          )}
         </div>
 
         {/* Action Button: Only visible to Admin/Manager */}
@@ -485,63 +487,61 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
       )}
 
       {/* Subtab 2: Project Sites List */}
-      {activeSubTab === 'projects' && (
+      {activeSubTab === 'projects' && isAdminOrManager && (
         <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {projects.map((proj) => (
               <div
                 key={proj.id}
-                className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col justify-between hover:border-blue-300 transition-all shadow-xs hover:shadow-md"
+                className="bg-white border border-slate-200 rounded-2xl p-4 hover:border-blue-300 transition-all shadow-xs hover:shadow-md"
               >
-                <div>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-800 flex items-center justify-center font-bold text-xs border border-blue-200 shrink-0">
-                        {proj.code}
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-bold text-slate-900">{proj.name}</h3>
-                        <p className="text-xs text-slate-600 font-medium">{proj.client}</p>
-                      </div>
-                    </div>
-
-                    {isAdminOrManager && (
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => handleOpenEditProject(proj)}
-                          className="p-1.5 rounded-lg text-slate-600 hover:text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer"
-                          title="Edit site and geofence"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (window.confirm(`Delete the site ${proj.name}?`)) {
-                              onDeleteProject(proj.id);
-                            }
-                          }}
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
-                          title="Delete site"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    )}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-mono font-bold text-blue-800 whitespace-nowrap">
+                      {proj.code}
+                    </span>
+                    <h3 className="text-sm font-bold text-slate-900 truncate">{proj.name}</h3>
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-slate-200 space-y-2 text-xs">
-                    <div className="flex items-center gap-2 text-slate-800 font-medium">
-                      <MapPin className="w-3.5 h-3.5 text-blue-700 shrink-0" />
-                      <span className="truncate">{proj.address}</span>
-                    </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={() => handleOpenEditProject(proj)}
+                      className="p-1.5 rounded-lg text-slate-600 hover:text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer"
+                      title="Edit site and geofence"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (window.confirm(`Delete the site ${proj.name}?`)) {
+                          onDeleteProject(proj.id);
+                        }
+                      }}
+                      className="p-1.5 rounded-lg text-slate-500 hover:text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
+                      title="Delete site"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between">
-                  <span className="text-[10px] text-emerald-900 font-bold px-2 py-0.5 rounded-full bg-emerald-100 border border-emerald-300">
-                    Active Site
-                  </span>
-                  <span className="text-xs font-mono font-bold text-slate-600">ID: {proj.code}</span>
+                {proj.address && (
+                  <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-700 font-medium">
+                    <MapPin className="w-3.5 h-3.5 text-blue-700 shrink-0" />
+                    <span className="truncate">{proj.address}</span>
+                  </div>
+                )}
+
+                <div className="mt-3">
+                  {proj.active !== false ? (
+                    <span className="text-[10px] text-emerald-900 font-bold px-2 py-0.5 rounded-full bg-emerald-100 border border-emerald-300">
+                      Active Site
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-slate-700 font-bold px-2 py-0.5 rounded-full bg-slate-100 border border-slate-300">
+                      Inactive
+                    </span>
+                  )}
                 </div>
               </div>
             ))}

@@ -97,7 +97,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <Settings2 className="w-3.5 h-3.5" />
-              {isAdminOrManager ? 'Team & Sites' : 'CPR Sites'}
+              {isAdminOrManager ? 'Team & Sites' : 'My Profile'}
             </button>
           </nav>
 
@@ -184,7 +184,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <Settings2 className="w-5 h-5" />
             <span className="text-[10px] font-bold tracking-tight mt-1">
-              {isAdminOrManager ? 'Team' : 'Sites'}
+              {isAdminOrManager ? 'Team' : 'Profile'}
             </span>
           </button>
         </div>
