@@ -42,9 +42,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="text-base font-black tracking-tight text-slate-900 flex items-center gap-2">
                 CPR Clock In/Out
               </span>
-              <span className="text-xs text-slate-700 hidden sm:inline font-semibold">
-                {isAdminOrManager ? 'Supervisor / Manager Panel' : 'Attendance Portal'}
-              </span>
             </div>
           </div>
 

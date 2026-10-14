@@ -8,6 +8,8 @@ import {
   Mail,
   Shield,
   ArrowRight,
+  LayoutGrid,
+  List,
 } from 'lucide-react';
 import { Employee, ProjectSite, TimeEntry, contractTypeLabel } from '../types';
 import { calculateElapsedHours, formatTimeDisplay } from '../utils/storage';
@@ -21,6 +23,8 @@ interface WhoIsWorkingProps {
   onGoToPunchTab: () => void;
 }
 
+const VIEW_MODE_KEY = 'cpr_clock_team_view_v1';
+
 export const WhoIsWorking: React.FC<WhoIsWorkingProps> = ({
   currentUser,
   employees,
@@ -33,6 +37,23 @@ export const WhoIsWorking: React.FC<WhoIsWorkingProps> = ({
   const [statusFilter, setStatusFilter] = useState<'all' | 'clocked_in' | 'clocked_out'>('all');
   const [contractTypeFilter, setContractTypeFilter] = useState<string>('all');
   const [projectLocationFilter, setProjectLocationFilter] = useState<string>('all');
+
+  // Team board layout, remembered on this device
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>(() => {
+    try {
+      return localStorage.getItem(VIEW_MODE_KEY) === 'grid' ? 'grid' : 'list';
+    } catch {
+      return 'list';
+    }
+  });
+  const changeViewMode = (mode: 'list' | 'grid') => {
+    setViewMode(mode);
+    try {
+      localStorage.setItem(VIEW_MODE_KEY, mode);
+    } catch {
+      // Storage blocked (private mode): the choice just is not remembered
+    }
+  };
 
   const isAdminOrManager = currentUser.systemRole === 'admin' || currentUser.systemRole === 'manager';
 
@@ -333,6 +354,26 @@ export const WhoIsWorking: React.FC<WhoIsWorkingProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            <div className="flex items-center gap-0.5 p-0.5 bg-slate-100 rounded-lg border border-slate-200 shrink-0">
+              <button
+                onClick={() => changeViewMode('list')}
+                className={`p-1.5 rounded-md transition-colors cursor-pointer ${
+                  viewMode === 'list' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:text-slate-900'
+                }`}
+                title="List view"
+              >
+                <List className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => changeViewMode('grid')}
+                className={`p-1.5 rounded-md transition-colors cursor-pointer ${
+                  viewMode === 'grid' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:text-slate-900'
+                }`}
+                title="Card view"
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+              </button>
+            </div>
             <span className="text-xs font-bold text-slate-700 shrink-0">Site:</span>
             <select
               value={projectLocationFilter}
@@ -350,7 +391,99 @@ export const WhoIsWorking: React.FC<WhoIsWorkingProps> = ({
         </div>
       </div>
 
+      {/* List of employees */}
+      {viewMode === 'list' && (
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+          {filtered.length === 0 ? (
+            <div className="py-12 text-center text-sm font-medium text-slate-600">
+              No employees match the selected filters.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-slate-800">
+                <thead className="bg-slate-100 text-xs uppercase tracking-wider text-slate-800 border-b border-slate-200 font-extrabold">
+                  <tr>
+                    <th className="py-3 px-4">Employee</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4">Site</th>
+                    <th className="py-3 px-4">Clock In</th>
+                    <th className="py-3 px-4">Elapsed</th>
+                    <th className="py-3 px-4 text-right"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {filtered.map((emp) => {
+                    const activeShift = entries.find((e) => e.employeeId === emp.id && e.status === 'active');
+                    const elapsedInfo =
+                      activeShift && activeShift.clockInTime
+                        ? calculateElapsedHours(activeShift.clockInTime, undefined, activeShift.breakPeriods)
+                        : null;
+                    return (
+                      <tr key={emp.id} className="hover:bg-blue-50/40 transition-colors">
+                        <td className="py-2.5 px-4">
+                          <div className="flex items-center gap-2.5">
+                            <div
+                              className={`w-8 h-8 rounded-lg ${emp.avatarBg} flex items-center justify-center text-xs font-black text-white shrink-0`}
+                            >
+                              {emp.name.charAt(0)}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="font-bold text-slate-900 whitespace-nowrap">{emp.name}</div>
+                              <div className="flex items-center gap-1.5 whitespace-nowrap">
+                                <span className="text-slate-600 font-medium">{emp.role}</span>
+                                <span
+                                  className={`text-[9px] font-bold px-1.5 rounded border ${
+                                    emp.contractType === 'Internal Team'
+                                      ? 'bg-blue-100 text-blue-900 border-blue-300'
+                                      : 'bg-purple-100 text-purple-900 border-purple-300'
+                                  }`}
+                                >
+                                  {contractTypeLabel(emp.contractType)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-2.5 px-4 whitespace-nowrap">
+                          <span
+                            className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${
+                              emp.status === 'clocked_in'
+                                ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                                : 'bg-slate-100 text-slate-700 border-slate-300'
+                            }`}
+                          >
+                            {emp.status === 'clocked_in' ? 'On Shift' : 'Off'}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-4 font-semibold text-slate-900 whitespace-nowrap">
+                          {activeShift?.projectName || <span className="text-slate-400 font-normal">-</span>}
+                        </td>
+                        <td className="py-2.5 px-4 font-mono font-bold text-emerald-800 whitespace-nowrap">
+                          {activeShift ? formatTimeDisplay(activeShift.clockInTime) : <span className="text-slate-400 font-normal">-</span>}
+                        </td>
+                        <td className="py-2.5 px-4 font-mono font-bold text-blue-800 tabular-nums whitespace-nowrap">
+                          {elapsedInfo ? elapsedInfo.formatted : <span className="text-slate-400 font-normal">-</span>}
+                        </td>
+                        <td className="py-2.5 px-4 text-right whitespace-nowrap">
+                          <button
+                            onClick={() => onSelectEmployeeForPunch(emp)}
+                            className="px-3 py-1 rounded-lg bg-blue-50 hover:bg-blue-600 text-blue-800 hover:text-white border border-blue-200 text-xs font-bold transition-colors cursor-pointer"
+                          >
+                            View Time Clock
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Grid of Employees Cards */}
+      {viewMode === 'grid' && (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.length === 0 ? (
           <div className="col-span-full py-12 text-center text-sm font-medium text-slate-600 bg-white rounded-3xl border border-slate-200">
@@ -481,6 +614,7 @@ export const WhoIsWorking: React.FC<WhoIsWorkingProps> = ({
           })
         )}
       </div>
+      )}
     </div>
   );
 };
