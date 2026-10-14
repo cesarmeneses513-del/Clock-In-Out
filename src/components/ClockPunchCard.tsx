@@ -6,11 +6,12 @@ import {
   CheckCircle2,
   FileText,
   AlertTriangle,
+  RefreshCw,
 } from 'lucide-react';
 import { Employee, ProjectSite, TimeEntry, LocationStamp, contractTypeLabel } from '../types';
 import { calculateElapsedHours, formatTimeDisplay, formatDateDisplay } from '../utils/storage';
 import { sound } from '../utils/audio';
-import { captureCurrentLocation, getDistanceMeters } from '../utils/geo';
+import { captureCurrentLocation, getDistanceMeters, LocationFailure } from '../utils/geo';
 
 interface ClockPunchCardProps {
   activeEmployee: Employee;
@@ -40,7 +41,8 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
   const [notes, setNotes] = useState<string>('');
   const [loadingAction, setLoadingAction] = useState<'clock_in' | 'clock_out' | null>(null);
   const [gpsLocation, setGpsLocation] = useState<LocationStamp | null>(null);
-  const [, setGpsLoading] = useState(false);
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const [gpsFailure, setGpsFailure] = useState<LocationFailure | null>(null);
   // True once the first location attempt has finished, whether or not it succeeded
   const [gpsChecked, setGpsChecked] = useState(false);
   const [lastNotification, setLastNotification] = useState<{
@@ -73,10 +75,11 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
   const handleRefreshLocation = async () => {
     setGpsLoading(true);
     try {
-      const loc = await captureCurrentLocation();
-      if (loc) {
-        setGpsLocation(loc);
+      const { location, failure } = await captureCurrentLocation();
+      if (location) {
+        setGpsLocation(location);
       }
+      setGpsFailure(failure || null);
     } catch {
       // Background silent capture
     } finally {
@@ -143,9 +146,13 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
   const siteNotice = isClockedIn || !isOwnCard
     ? null
     : !gpsLocation
-    ? gpsChecked
-      ? 'Location is off. Turn on location access to see the sites near you.'
-      : 'Finding your location...'
+    ? !gpsChecked || gpsLoading
+      ? 'Finding your location...'
+      : gpsFailure === 'denied'
+      ? 'Location access is blocked for this website. On iPhone: Settings > Privacy & Security > Location Services > Safari Websites > While Using the App. Then tap Try again and choose Allow.'
+      : gpsFailure === 'unsupported'
+      ? 'This browser cannot share your location. Open the app in Safari or Chrome.'
+      : 'Could not get your location. Check that Location Services are on, then tap Try again.'
     : nearbySites.length === 0
     ? nearestSite
       ? `You are not inside any site area. Nearest: ${nearestSite.name} (${formatDistance(distanceTo(nearestSite) ?? 0)} away).`
@@ -411,6 +418,18 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
 
             {siteNotice && (
               <p className="text-xs font-semibold text-amber-800 pl-0.5">{siteNotice}</p>
+            )}
+
+            {isOwnCard && !isClockedIn && gpsChecked && (!gpsLocation || nearbySites.length === 0) && (
+              <button
+                type="button"
+                onClick={handleRefreshLocation}
+                disabled={gpsLoading}
+                className="px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-blue-700 hover:text-blue-900 text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-2xs"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${gpsLoading ? 'animate-spin' : ''}`} />
+                <span>{gpsLoading ? 'Locating...' : 'Try again'}</span>
+              </button>
             )}
           </div>
         </div>

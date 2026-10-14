@@ -1,32 +1,44 @@
 import { LocationStamp } from '../types';
 
-export async function captureCurrentLocation(): Promise<LocationStamp | undefined> {
+// Why the device location could not be read
+export type LocationFailure = 'denied' | 'unavailable' | 'unsupported';
+
+function readPosition(options: PositionOptions): Promise<GeolocationPosition> {
+  return new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(resolve, reject, options);
+  });
+}
+
+function toStamp(pos: GeolocationPosition): LocationStamp {
+  return {
+    latitude: Number(pos.coords.latitude.toFixed(6)),
+    longitude: Number(pos.coords.longitude.toFixed(6)),
+    accuracy: Math.round(pos.coords.accuracy),
+    addressName: `Lat: ${pos.coords.latitude.toFixed(4)}, Lon: ${pos.coords.longitude.toFixed(4)} (±${Math.round(pos.coords.accuracy)}m)`,
+    timestamp: new Date().toISOString(),
+  };
+}
+
+export async function captureCurrentLocation(): Promise<{
+  location?: LocationStamp;
+  failure?: LocationFailure;
+}> {
   if (typeof window === 'undefined' || !navigator.geolocation) {
-    return undefined;
+    return { failure: 'unsupported' };
   }
 
-  return new Promise((resolve) => {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        resolve({
-          latitude: Number(pos.coords.latitude.toFixed(6)),
-          longitude: Number(pos.coords.longitude.toFixed(6)),
-          accuracy: Math.round(pos.coords.accuracy),
-          addressName: `Lat: ${pos.coords.latitude.toFixed(4)}, Lon: ${pos.coords.longitude.toFixed(4)} (±${Math.round(pos.coords.accuracy)}m)`,
-          timestamp: new Date().toISOString(),
-        });
-      },
-      () => {
-        // Fallback gracefully without blocking the punch
-        resolve(undefined);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 8000,
-        maximumAge: 60000,
-      }
-    );
-  });
+  try {
+    return { location: toStamp(await readPosition({ enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 })) };
+  } catch (err) {
+    if ((err as GeolocationPositionError).code === 1) return { failure: 'denied' };
+  }
+
+  // GPS often times out indoors: settle for the Wi-Fi / network position
+  try {
+    return { location: toStamp(await readPosition({ enableHighAccuracy: false, timeout: 15000, maximumAge: 120000 })) };
+  } catch (err) {
+    return { failure: (err as GeolocationPositionError).code === 1 ? 'denied' : 'unavailable' };
+  }
 }
 
 // Calculate distance in meters between two coordinates (Haversine)

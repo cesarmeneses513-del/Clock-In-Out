@@ -47,6 +47,15 @@ textarea:focus {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2) !important;
 }
 
+/* Phones: iOS Safari zooms the page when a focused field has text smaller than 16px */
+@media (pointer: coarse) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 /* Dropdowns: drop the native look (Safari ignores padding on it) so they match text inputs in height */
 select {
   appearance: none;
