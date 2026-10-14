@@ -23,6 +23,7 @@ import {
   Shield,
 } from 'lucide-react';
 import { Employee, ProjectSite, contractTypeLabel } from '../types';
+import { SiteMapPicker } from './SiteMapPicker';
 
 interface TeamManagementProps {
   currentUser: Employee;
@@ -148,6 +149,13 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
       setGeocodeStatus({ text: 'Please enter an address or reference first.', isError: true });
       return;
     }
+    const typedCoords = projAddress.trim().match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/);
+    if (typedCoords) {
+      setProjLatitude(parseFloat(typedCoords[1]).toFixed(6));
+      setProjLongitude(parseFloat(typedCoords[2]).toFixed(6));
+      setGeocodeStatus({ text: 'Coordinates set from the values you typed.' });
+      return;
+    }
     setIsGeocoding(true);
     setGeocodeStatus(null);
     try {
@@ -259,6 +267,9 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     });
     setCopiedLink(false);
   };
+
+  const mapLatitude = Number.isFinite(parseFloat(projLatitude)) ? parseFloat(projLatitude) : -33.8688;
+  const mapLongitude = Number.isFinite(parseFloat(projLongitude)) ? parseFloat(projLongitude) : 151.2093;
 
   const handleSaveProject = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1069,21 +1080,23 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                     <span>{geocodeStatus.text}</span>
                   </div>
                 )}
-                <p className="text-xs text-slate-600 mt-1 font-medium">
-                  💡 Type the address and click <span className="text-blue-800 font-bold">"Get Coordinates from Address"</span> to calculate the latitude and longitude.
-                </p>
-              </div>
-
-              {/* Geofence control (admin only) */}
-              {isOnlyAdmin ? (
-                <>
-                  {/* GPS coordinates */}
-                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
-                        <MapPin className="w-4 h-4 text-blue-700" />
-                        Site Centre Point (GPS)
-                      </span>
+                <div className="mt-2 space-y-1.5">
+                  <SiteMapPicker
+                    latitude={mapLatitude}
+                    longitude={mapLongitude}
+                    radius={projRadius}
+                    editable={isOnlyAdmin}
+                    onPick={(lat, lon) => {
+                      setProjLatitude(lat.toFixed(6));
+                      setProjLongitude(lon.toFixed(6));
+                      setGpsCaptureStatus(null);
+                    }}
+                  />
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-mono font-bold text-slate-700">
+                      {mapLatitude.toFixed(6)}, {mapLongitude.toFixed(6)}
+                    </span>
+                    {isOnlyAdmin && (
                       <button
                         type="button"
                         onClick={handleCaptureGps}
@@ -1093,38 +1106,22 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                         <Navigation className={`w-3 h-3 ${isCapturingGps ? 'animate-spin' : ''}`} />
                         <span>{isCapturingGps ? 'Getting GPS...' : 'Use my current location'}</span>
                       </button>
-                    </div>
-
-                    {gpsCaptureStatus && (
-                      <p className="text-xs text-emerald-800 font-mono font-bold">{gpsCaptureStatus}</p>
                     )}
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-xs font-bold text-slate-700 block mb-1">Latitude</label>
-                        <input
-                          type="number"
-                          step="any"
-                          placeholder="e.g. -33.8688"
-                          value={projLatitude}
-                          onChange={(e) => setProjLatitude(e.target.value)}
-                          className="w-full bg-white border-2 border-slate-300 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-900 font-mono focus:outline-none focus:border-blue-600"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs font-bold text-slate-700 block mb-1">Longitude</label>
-                        <input
-                          type="number"
-                          step="any"
-                          placeholder="e.g. 151.2093"
-                          value={projLongitude}
-                          onChange={(e) => setProjLongitude(e.target.value)}
-                          className="w-full bg-white border-2 border-slate-300 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-900 font-mono focus:outline-none focus:border-blue-600"
-                        />
-                      </div>
-                    </div>
                   </div>
+                  {gpsCaptureStatus && (
+                    <p className="text-xs text-emerald-800 font-mono font-bold">{gpsCaptureStatus}</p>
+                  )}
+                  {isOnlyAdmin && (
+                    <p className="text-xs text-slate-600 font-medium">
+                      Search the address, then click the map or drag the pin to fine-tune. The circle is the geofence.
+                    </p>
+                  )}
+                </div>
+              </div>
 
+              {/* Geofence control (admin only) */}
+              {isOnlyAdmin ? (
+                <>
                   {/* Geofence radius */}
                   <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
                     <div className="flex items-center justify-between">
