@@ -7,7 +7,7 @@ import {
   FileText,
   AlertTriangle,
 } from 'lucide-react';
-import { Employee, ProjectSite, TimeEntry, LocationStamp } from '../types';
+import { Employee, ProjectSite, TimeEntry, LocationStamp, contractTypeLabel } from '../types';
 import { calculateElapsedHours, formatTimeDisplay, formatDateDisplay } from '../utils/storage';
 import { sound } from '../utils/audio';
 import { captureCurrentLocation, getDistanceMeters } from '../utils/geo';
@@ -134,7 +134,7 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
       await onClockIn(selectedProject.id, notes, gpsLocation || undefined);
       setLastNotification({
         type: 'success',
-        message: `¡Entrada registrada con éxito para ${activeEmployee.name} a las ${formatTimeDisplay(new Date().toISOString())}!`,
+        message: `Clock-in recorded for ${activeEmployee.name} at ${formatTimeDisplay(new Date().toISOString())}!`,
       });
       setNotes('');
     } finally {
@@ -151,7 +151,7 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
     }
     try {
       const autoNote = isAuto
-        ? `[SALIDA AUTOMÁTICA POR GEOCERCA] Colaborador detectado a ${distance || 'más de ' + radius}m fuera del perímetro de ${selectedProject.name}.`
+        ? `[AUTOMATIC GEOFENCE CLOCK-OUT] Employee detected ${distance || 'more than ' + radius}m outside the perimeter of ${selectedProject.name}.`
         : undefined;
       const finalNotes = notes ? (autoNote ? `${autoNote} | ${notes}` : notes) : autoNote;
 
@@ -159,8 +159,8 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
       setLastNotification({
         type: isAuto ? 'warning' : 'info',
         message: isAuto
-          ? `¡Salida automática registrada! Saliste del radio de ${radius}m permitido de ${selectedProject.name} (detectado a ${distance}m).`
-          : `¡Salida registrada a las ${formatTimeDisplay(new Date().toISOString())}! Jornada completada.`,
+          ? `Automatic clock-out recorded! You left the allowed ${radius}m radius of ${selectedProject.name} (detected at ${distance}m).`
+          : `Clock-out recorded at ${formatTimeDisplay(new Date().toISOString())}! Shift completed.`,
       });
       setNotes('');
     } finally {
@@ -193,7 +193,7 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
             onClick={() => setLastNotification(null)}
             className="text-xs opacity-70 hover:opacity-100 underline ml-2 cursor-pointer"
           >
-            Entendido
+            Got it
           </button>
         </div>
       )}
@@ -227,7 +227,7 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
                       : 'bg-slate-100 text-slate-800 border-slate-300'
                   }`}
                 >
-                  {isClockedIn ? '● En Turno' : '○ Fuera de Turno'}
+                  {isClockedIn ? '● On Shift' : '○ Off Shift'}
                 </span>
               </div>
               <div className="flex items-center gap-1.5 mt-0.5">
@@ -240,14 +240,14 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
                       : 'bg-purple-100 text-purple-900 border-purple-300'
                   }`}
                 >
-                  {activeEmployee.contractType || 'Internal Team'}
+                  {contractTypeLabel(activeEmployee.contractType)}
                 </span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Central Display: TIEMPO TRANSCURRIDO */}
+        {/* Central Display: elapsed time */}
         <div className="py-6 sm:py-8 text-center flex flex-col items-center justify-center">
           <div className="inline-flex items-center gap-2 mb-2 bg-blue-50 border border-blue-200 px-3.5 py-1 rounded-full shadow-2xs">
             <span
@@ -260,7 +260,7 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
                 isClockedIn ? 'text-blue-900' : 'text-slate-700'
               }`}
             >
-              Tiempo Transcurrido
+              Elapsed Time
             </span>
           </div>
 
@@ -278,23 +278,23 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
             <p className="text-xs sm:text-sm font-semibold text-slate-800">
               {isClockedIn && activeShift ? (
                 <span>
-                  Jornada iniciada a las{' '}
+                  Shift started at{' '}
                   <strong className="text-blue-800 font-mono font-bold text-sm">
                     {formatTimeDisplay(activeShift.clockInTime)}
                   </strong>
                 </span>
               ) : (
-                <span>Sin turno activo · Listo para iniciar jornada</span>
+                <span>No active shift · Ready to start</span>
               )}
             </p>
 
             <p className="text-[11px] text-slate-600 font-mono font-medium">
-              Hora local: {currentTime.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} · {formatDateDisplay(currentTime.toISOString())}
+              Local time: {currentTime.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} · {formatDateDisplay(currentTime.toISOString())}
             </p>
           </div>
         </div>
 
-        {/* 5. Main Action Button: Registrar Salida / Registrar Entrada UBICADO ARRIBA DE SEDE */}
+        {/* 5. Main Action Button: clock out / clock in, placed above the site selector */}
         <div className="pt-2 pb-5">
           {isClockedIn ? (
             <button
@@ -304,7 +304,7 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
             >
               <Square className="w-5 h-5 fill-current" />
               <span>
-                {loadingAction === 'clock_out' ? 'Registrando Salida...' : 'REGISTRAR SALIDA (CLOCK OUT)'}
+                {loadingAction === 'clock_out' ? 'Clocking Out...' : 'CLOCK OUT'}
               </span>
             </button>
           ) : (
@@ -315,18 +315,18 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
             >
               <Play className="w-5 h-5 fill-current" />
               <span>
-                {loadingAction === 'clock_in' ? 'Registrando Entrada...' : 'REGISTRAR ENTRADA (CLOCK IN)'}
+                {loadingAction === 'clock_in' ? 'Clocking In...' : 'CLOCK IN'}
               </span>
             </button>
           )}
         </div>
 
-        {/* 2. Sede Ubicación: Que solo salga la dirección */}
+        {/* 2. Site location: shows the address only */}
         <div className="pt-4 border-t border-slate-200">
           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
             <label className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
               <Building2 className="w-4 h-4 text-blue-700" />
-              Sede / Ubicación
+              Site / Location
             </label>
 
             <select
@@ -348,7 +348,7 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
           </div>
         </div>
 
-        {/* 7. Notas que salgan al final */}
+        {/* 7. Notes at the bottom */}
         <div className="pt-4">
           <div className="bg-slate-50 p-3.5 rounded-2xl border-2 border-slate-300 flex items-start gap-3 focus-within:border-blue-600 focus-within:bg-white transition-colors">
             <FileText className="w-4 h-4 text-slate-500 mt-0.5 shrink-0" />
@@ -356,8 +356,8 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
               type="text"
               placeholder={
                 isClockedIn
-                  ? 'Notas del turno o reporte de salida (opcional)...'
-                  : 'Notas de inicio o tarea a realizar (opcional)...'
+                  ? 'Shift notes or clock-out report (optional)...'
+                  : 'Start notes or task to do (optional)...'
               }
               value={notes}
               onChange={(e) => setNotes(e.target.value)}

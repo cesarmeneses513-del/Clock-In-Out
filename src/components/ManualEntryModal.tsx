@@ -22,7 +22,7 @@ export const ManualEntryModal: React.FC<ManualEntryModalProps> = ({
   const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [clockInTime, setClockInTime] = useState<string>('08:00');
   const [clockOutTime, setClockOutTime] = useState<string>('17:00');
-  const [notes, setNotes] = useState<string>('Marcación manual / regularización');
+  const [notes, setNotes] = useState<string>('Manual entry / adjustment');
   const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
@@ -35,7 +35,7 @@ export const ManualEntryModal: React.FC<ManualEntryModalProps> = ({
     const proj = projects.find((p) => p.id === projectId);
 
     if (!emp || !proj) {
-      setError('Selecciona colaborador y proyecto válidos');
+      setError('Select a valid employee and project');
       return;
     }
 
@@ -46,7 +46,7 @@ export const ManualEntryModal: React.FC<ManualEntryModalProps> = ({
     const endMs = new Date(clockOutIso).getTime();
 
     if (endMs <= startMs) {
-      setError('La hora de salida debe ser posterior a la hora de entrada');
+      setError('Clock-out time must be after clock-in time');
       return;
     }
 
@@ -79,9 +79,9 @@ export const ManualEntryModal: React.FC<ManualEntryModalProps> = ({
         {/* Header */}
         <div className="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
           <div>
-            <h2 className="text-base font-black text-slate-900">Añadir Marcación Manual</h2>
+            <h2 className="text-base font-black text-slate-900">Add Manual Entry</h2>
             <p className="text-xs text-slate-600 font-medium mt-0.5">
-              Registra horas retroactivas u olvidos de marcación
+              Record past hours or missed punches
             </p>
           </div>
           <button
@@ -100,11 +100,11 @@ export const ManualEntryModal: React.FC<ManualEntryModalProps> = ({
             </div>
           )}
 
-          {/* Colaborador */}
+          {/* Employee */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
               <User className="w-4 h-4 text-blue-700" />
-              Colaborador
+              Employee
             </label>
             <select
               value={employeeId}
@@ -119,11 +119,11 @@ export const ManualEntryModal: React.FC<ManualEntryModalProps> = ({
             </select>
           </div>
 
-          {/* Proyecto */}
+          {/* Project */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
               <Building2 className="w-4 h-4 text-blue-700" />
-              Proyecto / Sede
+              Project / Site
             </label>
             <select
               value={projectId}
@@ -138,11 +138,11 @@ export const ManualEntryModal: React.FC<ManualEntryModalProps> = ({
             </select>
           </div>
 
-          {/* Fecha */}
+          {/* Date */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
               <Calendar className="w-4 h-4 text-blue-700" />
-              Fecha del Turno
+              Shift Date
             </label>
             <input
               type="date"
@@ -152,12 +152,12 @@ export const ManualEntryModal: React.FC<ManualEntryModalProps> = ({
             />
           </div>
 
-          {/* Horas Entrada y Salida */}
+          {/* Clock-in and clock-out times */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
                 <Clock className="w-4 h-4 text-emerald-700" />
-                Hora de Entrada
+                Clock-In Time
               </label>
               <input
                 type="time"
@@ -171,7 +171,7 @@ export const ManualEntryModal: React.FC<ManualEntryModalProps> = ({
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
                 <Clock className="w-4 h-4 text-rose-700" />
-                Hora de Salida
+                Clock-Out Time
               </label>
               <input
                 type="time"
@@ -183,17 +183,17 @@ export const ManualEntryModal: React.FC<ManualEntryModalProps> = ({
             </div>
           </div>
 
-          {/* Motivo / Notas */}
+          {/* Reason / Notes */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
               <FileText className="w-4 h-4 text-slate-600" />
-              Motivo o Justificación
+              Reason or Justification
             </label>
             <textarea
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Ej. Olvido de marcación en salida, autorizado por jefatura..."
+              placeholder="e.g. Forgot to clock out, approved by supervisor..."
               className="w-full bg-white border-2 border-slate-300 rounded-xl px-3.5 py-2 text-xs font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600"
             />
           </div>
@@ -205,14 +205,14 @@ export const ManualEntryModal: React.FC<ManualEntryModalProps> = ({
               onClick={onClose}
               className="px-4 py-2 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
             >
-              Cancelar
+              Cancel
             </button>
             <button
               type="submit"
               className="px-5 py-2.5 rounded-xl text-xs font-black bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/30 flex items-center gap-2 transition-all cursor-pointer"
             >
               <CheckCircle2 className="w-4 h-4" />
-              <span>Guardar Registro</span>
+              <span>Save Entry</span>
             </button>
           </div>
         </form>

@@ -56,18 +56,18 @@ export function calculateElapsedHours(
 export function formatTimeDisplay(isoString?: string): string {
   if (!isoString) return '--:--';
   const d = new Date(isoString);
-  return d.toLocaleTimeString('es-ES', {
+  return d.toLocaleTimeString('en-AU', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: true,
   });
 }
 
-// Format ISO date to local human readable date e.g. "Lunes, 5 de Octubre 2026"
+// Format ISO date to local human readable date e.g. "Mon, 5 Oct 2026"
 export function formatDateDisplay(isoString?: string): string {
   if (!isoString) return '';
   const d = new Date(isoString);
-  return d.toLocaleDateString('es-ES', {
+  return d.toLocaleDateString('en-AU', {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -78,19 +78,19 @@ export function formatDateDisplay(isoString?: string): string {
 // Export timesheets to CSV with UTF-8 BOM for Excel
 export function exportEntriesToCSV(entries: TimeEntry[]) {
   const headers = [
-    'ID Registro',
-    'Empleado',
-    'Rol',
-    'Fecha',
-    'Proyecto',
-    'Hora Entrada',
-    'Hora Salida',
-    'Descanso (min)',
-    'Horas Netas',
-    'Estado',
-    'Notas',
-    'Ubicación Entrada',
-    'Dispositivo',
+    'Entry ID',
+    'Employee',
+    'Role',
+    'Date',
+    'Project',
+    'Clock In',
+    'Clock Out',
+    'Break (min)',
+    'Net Hours',
+    'Status',
+    'Notes',
+    'Clock-In Location',
+    'Device',
   ];
 
   const rows = entries.map((e) => [
@@ -100,10 +100,10 @@ export function exportEntriesToCSV(entries: TimeEntry[]) {
     e.date,
     `"${e.projectName.replace(/"/g, '""')}"`,
     e.clockInTime ? formatTimeDisplay(e.clockInTime) : '',
-    e.clockOutTime ? formatTimeDisplay(e.clockOutTime) : 'En turno',
+    e.clockOutTime ? formatTimeDisplay(e.clockOutTime) : 'On shift',
     e.totalBreakMinutes || 0,
     e.totalHours ? e.totalHours.toFixed(2) : '0.00',
-    e.status === 'completed' ? 'Completado' : e.status === 'on_break' ? 'En Pausa' : 'Activo',
+    e.status === 'completed' ? 'Completed' : e.status === 'on_break' ? 'On Break' : 'Active',
     `"${(e.notes || '').replace(/"/g, '""')}"`,
     `"${(e.locationIn?.addressName || '').replace(/"/g, '""')}"`,
     e.device || 'Web',
@@ -114,7 +114,7 @@ export function exportEntriesToCSV(entries: TimeEntry[]) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.setAttribute('href', url);
-  link.setAttribute('download', `CPR_Reporte_Horas_${new Date().toISOString().split('T')[0]}.csv`);
+  link.setAttribute('download', `CPR_Hours_Report_${new Date().toISOString().split('T')[0]}.csv`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);

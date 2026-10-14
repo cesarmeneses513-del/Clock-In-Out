@@ -91,7 +91,7 @@ export default function App() {
     } catch (err) {
       if (seq !== reloadSeqRef.current) return;
       console.error(err);
-      setSyncError('No se pudieron cargar los datos desde el servidor.');
+      setSyncError('Could not load data from the server.');
       setDataLoaded(true);
     }
   }, []);
@@ -124,7 +124,7 @@ export default function App() {
     write().catch((err) => {
       console.error(err);
       setSyncError(
-        `No se pudo guardar el cambio: ${err?.message || 'error desconocido'}. Se restauraron los datos del servidor.`
+        `Could not save the change: ${err?.message || 'unknown error'}. Data was restored from the server.`
       );
       reload();
     });
@@ -213,7 +213,7 @@ export default function App() {
       totalHours: 0,
       notes: notes || undefined,
       locationIn: location,
-      device: 'Portal CPR',
+      device: 'CPR Portal',
       verified: true,
     };
 
@@ -327,7 +327,7 @@ export default function App() {
         sound.playGeofenceAlert();
         handleClockOut(
           currentUser.id,
-          `[SALIDA AUTOMÁTICA POR GEOCERCA] Colaborador detectado a ${dist}m de la sede (radio permitido: ${currentSite.geofenceRadius}m)`,
+          `[AUTOMATIC GEOFENCE CLOCK-OUT] Employee detected ${dist}m from the site (allowed radius: ${currentSite.geofenceRadius}m)`,
           loc,
           true
         );
@@ -336,7 +336,7 @@ export default function App() {
           siteName: currentSite.name,
           distance: dist,
           radius: currentSite.geofenceRadius!,
-          time: new Date().toLocaleTimeString('es-ES', {
+          time: new Date().toLocaleTimeString('en-AU', {
             hour: '2-digit',
             minute: '2-digit',
             second: '2-digit',
@@ -444,18 +444,18 @@ export default function App() {
 
   if (!isSupabaseConfigured) {
     return (
-      <StatusScreen title="Falta configurar Supabase">
+      <StatusScreen title="Supabase is not configured">
         <p className="text-xs text-slate-600">
-          Crea el archivo <code className="font-mono">.env.local</code> con{' '}
-          <code className="font-mono">VITE_SUPABASE_URL</code> y{' '}
-          <code className="font-mono">VITE_SUPABASE_ANON_KEY</code> (ver README) y reinicia la app.
+          Create the <code className="font-mono">.env.local</code> file with{' '}
+          <code className="font-mono">VITE_SUPABASE_URL</code> and{' '}
+          <code className="font-mono">VITE_SUPABASE_ANON_KEY</code> (see README) and restart the app.
         </p>
       </StatusScreen>
     );
   }
 
   if (!authReady) {
-    return <StatusScreen title="Cargando..." />;
+    return <StatusScreen title="Loading..." />;
   }
 
   // If no user is authenticated, show login screen
@@ -464,21 +464,21 @@ export default function App() {
   }
 
   if (!dataLoaded) {
-    return <StatusScreen title="Cargando datos..." />;
+    return <StatusScreen title="Loading data..." />;
   }
 
   // Signed in, but no employee record is linked to this account (e.g. it was deleted by an admin)
   if (!currentUser) {
     return (
-      <StatusScreen title="Tu cuenta no está vinculada a ningún colaborador">
+      <StatusScreen title="Your account is not linked to any employee">
         <p className="text-xs text-slate-600">
-          {syncError || 'Solicita a tu administrador CPR que te agregue nuevamente a la empresa.'}
+          {syncError || 'Ask your CPR administrator to add you to the company again.'}
         </p>
         <button
           onClick={handleLogout}
           className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors cursor-pointer"
         >
-          Cerrar sesión
+          Sign out
         </button>
       </StatusScreen>
     );
@@ -585,42 +585,42 @@ export default function App() {
               </div>
               <div className="flex-1">
                 <span className="text-[10px] font-mono uppercase tracking-wider text-rose-400 font-bold px-2 py-0.5 rounded bg-rose-950/60 border border-rose-500/30">
-                  Control de Geocerca CPR
+                  CPR Geofence Control
                 </span>
                 <h3 className="text-base font-bold text-white mt-1">
-                  Salida Automática Registrada
+                  Automatic Clock-Out Recorded
                 </h3>
                 <p className="text-xs text-slate-300 mt-1">
-                  Has salido del área permitida de la sede de trabajo. Tu jornada laboral se ha cerrado de manera automática para garantizar la exactitud del registro.
+                  You have left the permitted area of the work site. Your shift was closed automatically to keep the record accurate.
                 </p>
               </div>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2 text-xs">
               <div className="flex justify-between">
-                <span className="text-slate-400">Colaborador:</span>
+                <span className="text-slate-400">Employee:</span>
                 <span className="font-semibold text-white">{geofenceAlertModal.employeeName}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Sede de Trabajo:</span>
+                <span className="text-slate-400">Work Site:</span>
                 <span className="font-semibold text-white truncate max-w-[200px]">
                   {geofenceAlertModal.siteName}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Distancia Detectada:</span>
+                <span className="text-slate-400">Detected Distance:</span>
                 <span className="font-mono font-bold text-rose-400">
-                  {geofenceAlertModal.distance} metros
+                  {geofenceAlertModal.distance} metres
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Radio Permitido:</span>
+                <span className="text-slate-400">Allowed Radius:</span>
                 <span className="font-mono text-slate-300">
-                  {geofenceAlertModal.radius} metros
+                  {geofenceAlertModal.radius} metres
                 </span>
               </div>
               <div className="flex justify-between pt-1 border-t border-slate-800/80 text-[11px]">
-                <span className="text-slate-400">Hora de Salida Registrada:</span>
+                <span className="text-slate-400">Clock-Out Time Recorded:</span>
                 <span className="font-mono font-bold text-emerald-400">
                   {geofenceAlertModal.time}
                 </span>
@@ -631,7 +631,7 @@ export default function App() {
               onClick={() => setGeofenceAlertModal(null)}
               className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-750 text-white font-semibold text-xs border border-slate-700 transition-colors cursor-pointer"
             >
-              Entendido
+              Got it
             </button>
           </div>
         </div>

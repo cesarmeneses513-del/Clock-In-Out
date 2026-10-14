@@ -25,7 +25,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       ? { label: 'Admin', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
       : activeEmployee.systemRole === 'manager'
       ? { label: 'Manager', color: 'bg-blue-50 text-blue-700 border-blue-200' }
-      : { label: 'Colaborador', color: 'bg-slate-100 text-slate-700 border-slate-200' }
+      : { label: 'Employee', color: 'bg-slate-100 text-slate-700 border-slate-200' }
     : null;
 
   return (
@@ -43,7 +43,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 CPR Clock In/Out
               </span>
               <span className="text-xs text-slate-700 hidden sm:inline font-semibold">
-                {isAdminOrManager ? 'Panel Supervisor / Manager' : 'Portal de Asistencia'}
+                {isAdminOrManager ? 'Supervisor / Manager Panel' : 'Attendance Portal'}
               </span>
             </div>
           </div>
@@ -59,7 +59,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <Clock className="w-3.5 h-3.5" />
-              Marcador
+              Time Clock
             </button>
             <button
               onClick={() => onSelectTab('who_is_working')}
@@ -70,7 +70,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <Users className="w-3.5 h-3.5" />
-              {isAdminOrManager ? 'En Turno (Equipo)' : 'Mi Turno'}
+              {isAdminOrManager ? 'On Shift (Team)' : 'My Shift'}
               {isAdminOrManager && activeCount > 0 && (
                 <span className="px-1.5 py-0.2 text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 rounded-full">
                   {activeCount}
@@ -86,7 +86,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <FileSpreadsheet className="w-3.5 h-3.5" />
-              {isAdminOrManager ? 'Historial General' : 'Mi Historial'}
+              {isAdminOrManager ? 'All Timesheets' : 'My Timesheets'}
             </button>
             <button
               onClick={() => onSelectTab('team_projects')}
@@ -97,7 +97,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <Settings2 className="w-3.5 h-3.5" />
-              {isAdminOrManager ? 'Equipo & Sedes' : 'Sedes CPR'}
+              {isAdminOrManager ? 'Team & Sites' : 'CPR Sites'}
             </button>
           </nav>
 
@@ -131,7 +131,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <button
                   onClick={onLogout}
                   className="p-2 rounded-xl bg-white hover:bg-rose-50 text-slate-700 hover:text-rose-700 border border-slate-300 hover:border-rose-300 transition-colors cursor-pointer shadow-2xs"
-                  title="Cerrar sesión"
+                  title="Sign out"
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
@@ -151,7 +151,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             }`}
           >
             <Clock className="w-5 h-5" />
-            <span className="text-[10px] font-bold tracking-tight mt-1">Marcador</span>
+            <span className="text-[10px] font-bold tracking-tight mt-1">Time Clock</span>
           </button>
           <button
             onClick={() => onSelectTab('who_is_working')}
@@ -161,7 +161,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <Users className="w-5 h-5" />
             <span className="text-[10px] font-bold tracking-tight mt-1">
-              {isAdminOrManager ? 'En Turno' : 'Mi Turno'}
+              {isAdminOrManager ? 'On Shift' : 'My Shift'}
             </span>
             {isAdminOrManager && activeCount > 0 && (
               <span className="absolute top-2 right-4 w-2 h-2 rounded-full bg-emerald-600" />
@@ -174,7 +174,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             }`}
           >
             <FileSpreadsheet className="w-5 h-5" />
-            <span className="text-[10px] font-bold tracking-tight mt-1">Historial</span>
+            <span className="text-[10px] font-bold tracking-tight mt-1">Timesheets</span>
           </button>
           <button
             onClick={() => onSelectTab('team_projects')}
@@ -184,7 +184,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <Settings2 className="w-5 h-5" />
             <span className="text-[10px] font-bold tracking-tight mt-1">
-              {isAdminOrManager ? 'Equipo' : 'Sedes'}
+              {isAdminOrManager ? 'Team' : 'Sites'}
             </span>
           </button>
         </div>

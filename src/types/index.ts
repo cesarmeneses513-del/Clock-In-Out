@@ -2,6 +2,11 @@ export type PunchStatus = 'clocked_in' | 'on_break' | 'clocked_out';
 export type UserRole = 'admin' | 'manager' | 'employee';
 export type ContractType = 'Internal Team' | 'ASP Contratista';
 
+// The stored value stays 'ASP Contratista' (database check constraint); this is the label shown in the UI
+export function contractTypeLabel(type?: string): string {
+  return type === 'ASP Contratista' ? 'ASP Contractor' : 'Internal Team';
+}
+
 export interface Employee {
   id: string;
   name: string;

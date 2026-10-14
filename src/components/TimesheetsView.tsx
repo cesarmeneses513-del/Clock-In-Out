@@ -105,7 +105,7 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
           <div className="flex items-center gap-2.5">
             <Lock className="w-4 h-4 text-blue-700 shrink-0" />
             <span>
-              <strong className="text-slate-900 font-bold">Historial Personal:</strong> Solo visualizas tus propias marcaciones y horas acumuladas.
+              <strong className="text-slate-900 font-bold">My Timesheets:</strong> You only see your own time entries and accumulated hours.
             </span>
           </div>
           <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-white text-slate-800 border border-slate-300 shrink-0 shadow-2xs">
@@ -117,11 +117,11 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
           <div className="flex items-center gap-2.5">
             <Shield className="w-4 h-4 text-blue-700 shrink-0" />
             <span>
-              <strong className="text-slate-900 font-bold">Auditoría Completa ({currentUser.systemRole === 'admin' ? 'Administrador' : 'Manager'}):</strong> Puedes consultar, filtrar y exportar las horas de todos los trabajadores de la empresa.
+              <strong className="text-slate-900 font-bold">Full Audit ({currentUser.systemRole === 'admin' ? 'Administrator' : 'Manager'}):</strong> You can view, filter and export the hours of every worker in the company.
             </span>
           </div>
           <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-white text-blue-800 border border-blue-200 shrink-0 shadow-2xs">
-            Todos los Trabajadores
+            All Workers
           </span>
         </div>
       )}
@@ -130,44 +130,44 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
         <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-xs">
           <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">
-            {isAdminOrManager ? 'Horas Totales (Equipo)' : 'Mis Horas Totales'}
+            {isAdminOrManager ? 'Total Hours (Team)' : 'My Total Hours'}
           </span>
           <div className="text-2xl sm:text-3xl font-black font-mono text-emerald-800 mt-1 tabular-nums">
             {totalHoursWorked.toFixed(2)}h
           </div>
-          <span className="text-xs text-slate-500 font-medium mt-0.5">En el periodo seleccionado</span>
+          <span className="text-xs text-slate-500 font-medium mt-0.5">In the selected period</span>
         </div>
 
         <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-xs">
           <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">
-            Horas Extra (&gt;8h)
+            Overtime (&gt;8h)
           </span>
           <div className="text-2xl sm:text-3xl font-black font-mono text-amber-700 mt-1 tabular-nums">
             {overtimeHours.toFixed(2)}h
           </div>
-          <span className="text-xs text-slate-500 font-medium mt-0.5">Jornadas extendidas</span>
+          <span className="text-xs text-slate-500 font-medium mt-0.5">Extended shifts</span>
         </div>
 
         <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-xs">
           <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">
-            {isAdminOrManager ? 'Total Turnos' : 'Mis Turnos'}
+            {isAdminOrManager ? 'Total Shifts' : 'My Shifts'}
           </span>
           <div className="text-2xl sm:text-3xl font-black font-mono text-slate-900 mt-1 tabular-nums">
             {totalShifts}
           </div>
           <span className="text-xs text-slate-500 font-medium mt-0.5">
-            {completedShifts} completados · {totalShifts - completedShifts} activos
+            {completedShifts} completed · {totalShifts - completedShifts} active
           </span>
         </div>
 
         <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-xs">
           <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">
-            Promedio Diario
+            Daily Average
           </span>
           <div className="text-2xl sm:text-3xl font-black font-mono text-blue-700 mt-1 tabular-nums">
             {completedShifts > 0 ? (totalHoursWorked / completedShifts).toFixed(1) : '0.0'}h
           </div>
-          <span className="text-xs text-slate-500 font-medium mt-0.5">Por turno completado</span>
+          <span className="text-xs text-slate-500 font-medium mt-0.5">Per completed shift</span>
         </div>
       </div>
 
@@ -181,8 +181,8 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
               type="text"
               placeholder={
                 isAdminOrManager
-                  ? 'Buscar por colaborador, proyecto o notas...'
-                  : 'Buscar en mis registros...'
+                  ? 'Search by employee, project or notes...'
+                  : 'Search my entries...'
               }
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -197,7 +197,7 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
               className="px-3.5 py-2 text-xs font-bold rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 flex items-center gap-2 transition-colors cursor-pointer"
             >
               <Download className="w-4 h-4 text-slate-700" />
-              <span>{isAdminOrManager ? 'Exportar Excel (CSV)' : 'Descargar Mis Horas (CSV)'}</span>
+              <span>{isAdminOrManager ? 'Export to Excel (CSV)' : 'Download My Hours (CSV)'}</span>
             </button>
 
             {isAdminOrManager && (
@@ -206,7 +206,7 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
                 className="px-4 py-2 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/30 flex items-center gap-2 transition-colors cursor-pointer"
               >
                 <Plus className="w-4 h-4 text-white" />
-                <span>Registro Manual</span>
+                <span>Manual Entry</span>
               </button>
             )}
           </div>
@@ -224,7 +224,7 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
                   : 'text-slate-700 hover:text-slate-900'
               }`}
             >
-              Todos
+              All
             </button>
             <button
               onClick={() => setPeriodFilter('today')}
@@ -234,7 +234,7 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
                   : 'text-slate-700 hover:text-slate-900'
               }`}
             >
-              Hoy
+              Today
             </button>
             <button
               onClick={() => setPeriodFilter('week')}
@@ -244,7 +244,7 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
                   : 'text-slate-700 hover:text-slate-900'
               }`}
             >
-              Semana
+              Week
             </button>
             <button
               onClick={() => setPeriodFilter('month')}
@@ -254,7 +254,7 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
                   : 'text-slate-700 hover:text-slate-900'
               }`}
             >
-              Mes
+              Month
             </button>
           </div>
 
@@ -265,7 +265,7 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
               onChange={(e) => setSelectedEmployeeId(e.target.value)}
               className="bg-white border-2 border-slate-300 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600 cursor-pointer"
             >
-              <option value="all">Todos los colaboradores ({employees.length})</option>
+              <option value="all">All employees ({employees.length})</option>
               {employees.map((emp) => (
                 <option key={emp.id} value={emp.id}>
                   {emp.name} ({emp.role})
@@ -274,7 +274,7 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
             </select>
           ) : (
             <div className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 flex items-center justify-between">
-              <span className="text-slate-500 font-medium">Trabajador:</span>
+              <span className="text-slate-500 font-medium">Worker:</span>
               <span className="font-bold text-slate-900 truncate">{currentUser.name}</span>
             </div>
           )}
@@ -285,7 +285,7 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
             onChange={(e) => setSelectedProjectId(e.target.value)}
             className="bg-white border-2 border-slate-300 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600 cursor-pointer"
           >
-            <option value="all">Todas las sedes / proyectos ({projects.length})</option>
+            <option value="all">All sites / projects ({projects.length})</option>
             {projects.map((proj) => (
               <option key={proj.id} value={proj.id}>
                 {proj.name} ({proj.code})
@@ -301,21 +301,21 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
           <table className="w-full text-left text-xs text-slate-800">
             <thead className="bg-slate-100 text-xs uppercase tracking-wider text-slate-800 border-b border-slate-200 font-extrabold">
               <tr>
-                <th className="py-3.5 px-4">Fecha</th>
-                {isAdminOrManager && <th className="py-3.5 px-4">Colaborador</th>}
-                <th className="py-3.5 px-4">Sede / Proyecto</th>
-                <th className="py-3.5 px-4">Entrada</th>
-                <th className="py-3.5 px-4">Salida</th>
-                <th className="py-3.5 px-4">Total Horas</th>
-                <th className="py-3.5 px-4">Estado</th>
-                {isAdminOrManager && <th className="py-3.5 px-4 text-right">Acciones</th>}
+                <th className="py-3.5 px-4">Date</th>
+                {isAdminOrManager && <th className="py-3.5 px-4">Employee</th>}
+                <th className="py-3.5 px-4">Site / Project</th>
+                <th className="py-3.5 px-4">Clock In</th>
+                <th className="py-3.5 px-4">Clock Out</th>
+                <th className="py-3.5 px-4">Total Hours</th>
+                <th className="py-3.5 px-4">Status</th>
+                {isAdminOrManager && <th className="py-3.5 px-4 text-right">Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 font-sans">
               {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={isAdminOrManager ? 8 : 6} className="py-12 text-center text-slate-600 font-medium">
-                    No se encontraron marcaciones para este filtro.
+                    No time entries found for this filter.
                   </td>
                 </tr>
               ) : (
@@ -383,7 +383,7 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
                           formatTimeDisplay(entry.clockOutTime)
                         ) : (
                           <span className="text-blue-700 font-sans text-xs font-bold">
-                            En turno...
+                            On shift...
                           </span>
                         )}
                       </td>
@@ -415,12 +415,12 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
                                 : 'bg-emerald-100 text-emerald-900 border-emerald-300'
                             }`}
                           >
-                            {entry.status === 'completed' ? 'Completado' : 'Activo'}
+                            {entry.status === 'completed' ? 'Completed' : 'Active'}
                           </span>
                           {entry.isAutoClockOut && (
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-900 border border-rose-300 font-mono inline-flex items-center gap-1">
                               <Radio className="w-2.5 h-2.5 text-rose-600" />
-                              Auto Geocerca
+                              Auto Geofence
                             </span>
                           )}
                         </div>
@@ -433,14 +433,14 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
                             onClick={() => {
                               if (
                                 window.confirm(
-                                  `¿Seguro que deseas eliminar el registro de ${entry.employeeName} del ${entry.date}?`
+                                  `Are you sure you want to delete the entry for ${entry.employeeName} on ${entry.date}?`
                                 )
                               ) {
                                 onDeleteEntry(entry.id);
                               }
                             }}
                             className="p-1.5 rounded-lg text-slate-500 hover:text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
-                            title="Eliminar registro"
+                            title="Delete entry"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>

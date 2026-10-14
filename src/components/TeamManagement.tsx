@@ -22,7 +22,7 @@ import {
   Compass,
   Shield,
 } from 'lucide-react';
-import { Employee, ProjectSite } from '../types';
+import { Employee, ProjectSite, contractTypeLabel } from '../types';
 
 interface TeamManagementProps {
   currentUser: Employee;
@@ -68,7 +68,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
   // Add Employee Modal state
   const [showAddEmployee, setShowAddEmployee] = useState(false);
   const [empName, setEmpName] = useState('');
-  const [empRole, setEmpRole] = useState('Colaborador de Obra');
+  const [empRole, setEmpRole] = useState('Site Worker');
   const [empEmail, setEmpEmail] = useState('');
   const [empPhone, setEmpPhone] = useState('');
   const [empContractType, setEmpContractType] = useState<'Internal Team' | 'ASP Contratista'>('Internal Team');
@@ -95,7 +95,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
   const [projName, setProjName] = useState('');
   const [projCode, setProjCode] = useState('');
   const [projAddress, setProjAddress] = useState('');
-  const [projClient, setProjClient] = useState('Constructora CPR');
+  const [projClient, setProjClient] = useState('CPR Construction');
   const [projLatitude, setProjLatitude] = useState('');
   const [projLongitude, setProjLongitude] = useState('');
   const [projRadius, setProjRadius] = useState<number>(150);
@@ -110,9 +110,9 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     setProjName('');
     setProjCode(`CPR-${Math.floor(100 + Math.random() * 900)}`);
     setProjAddress('');
-    setProjClient('Constructora CPR');
-    setProjLatitude('19.4326');
-    setProjLongitude('-99.1332');
+    setProjClient('CPR Construction');
+    setProjLatitude('-33.8688');
+    setProjLongitude('151.2093');
     setProjRadius(150);
     setProjAutoClockOut(true);
     setGpsCaptureStatus(null);
@@ -125,9 +125,9 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     setProjName(proj.name);
     setProjCode(proj.code);
     setProjAddress(proj.address);
-    setProjClient(proj.client || 'Constructora CPR');
-    setProjLatitude(proj.latitude !== undefined ? proj.latitude.toString() : '19.4326');
-    setProjLongitude(proj.longitude !== undefined ? proj.longitude.toString() : '-99.1332');
+    setProjClient(proj.client || 'CPR Construction');
+    setProjLatitude(proj.latitude !== undefined ? proj.latitude.toString() : '-33.8688');
+    setProjLongitude(proj.longitude !== undefined ? proj.longitude.toString() : '151.2093');
     setProjRadius(proj.geofenceRadius || 150);
     setProjAutoClockOut(proj.autoClockOut !== false);
     setGpsCaptureStatus(null);
@@ -137,7 +137,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
 
   const handleGeocodeAddress = async () => {
     if (!projAddress.trim()) {
-      setGeocodeStatus({ text: 'Por favor, ingresa una dirección o referencia primero.', isError: true });
+      setGeocodeStatus({ text: 'Please enter an address or reference first.', isError: true });
       return;
     }
     setIsGeocoding(true);
@@ -146,10 +146,10 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
       const query = encodeURIComponent(projAddress.trim());
       const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`, {
         headers: {
-          'Accept-Language': 'es,en',
+          'Accept-Language': 'en',
         },
       });
-      if (!res.ok) throw new Error('Error al conectar con el servidor geográfico');
+      if (!res.ok) throw new Error('Could not reach the geocoding server');
       const data = await res.json();
       if (data && data.length > 0) {
         const item = data[0];
@@ -159,17 +159,17 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
         setProjLongitude(lon.toFixed(6));
         const shortName = item.display_name ? item.display_name.split(',').slice(0, 3).join(', ') : '';
         setGeocodeStatus({
-          text: `Coordenadas localizadas con éxito (${lat.toFixed(4)}, ${lon.toFixed(4)}): ${shortName}`,
+          text: `Coordinates found (${lat.toFixed(4)}, ${lon.toFixed(4)}): ${shortName}`,
         });
       } else {
         setGeocodeStatus({
-          text: 'No se encontraron coordenadas exactas para esta dirección. Puedes ingresarlas manualmente o usar el botón "Usar mi ubicación actual".',
+          text: 'No exact coordinates were found for this address. You can enter them manually or use the "Use my current location" button.',
           isError: true,
         });
       }
     } catch {
       setGeocodeStatus({
-        text: 'No se pudo buscar la dirección en línea. Puedes ingresar las coordenadas manualmente o usar tu ubicación actual.',
+        text: 'Could not look up the address online. You can enter the coordinates manually or use your current location.',
         isError: true,
       });
     } finally {
@@ -179,11 +179,11 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
 
   const handleCaptureGps = () => {
     if (!navigator.geolocation) {
-      setGpsCaptureStatus('Geolocalización no disponible en este navegador');
+      setGpsCaptureStatus('Geolocation is not available in this browser');
       return;
     }
     setIsCapturingGps(true);
-    setGpsCaptureStatus('Detectando satélites GPS...');
+    setGpsCaptureStatus('Detecting GPS satellites...');
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -192,11 +192,11 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
         const lon = pos.coords.longitude.toFixed(6);
         setProjLatitude(lat);
         setProjLongitude(lon);
-        setGpsCaptureStatus(`GPS capturado con éxito: ${lat}, ${lon} (±${Math.round(pos.coords.accuracy)}m)`);
+        setGpsCaptureStatus(`GPS captured: ${lat}, ${lon} (±${Math.round(pos.coords.accuracy)}m)`);
       },
       (err) => {
         setIsCapturingGps(false);
-        setGpsCaptureStatus(`No se pudo obtener el GPS: ${err.message}`);
+        setGpsCaptureStatus(`Could not get GPS: ${err.message}`);
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
@@ -228,8 +228,8 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
       name: empName.trim(),
       email: emailTrimmed,
       role: empRole.trim(),
-      siteName: siteObj?.name || 'Sede CPR',
-      inviteUrl: `${origin}/?activar=${encodeURIComponent(emailTrimmed)}`,
+      siteName: siteObj?.name || 'CPR Site',
+      inviteUrl: `${origin}/?activate=${encodeURIComponent(emailTrimmed)}`,
     });
     setCopiedLink(false);
 
@@ -246,8 +246,8 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
       name: emp.name,
       email: emp.email || '',
       role: emp.role,
-      siteName: siteObj?.name || 'Sede CPR',
-      inviteUrl: `${origin}/?activar=${encodeURIComponent(emp.email || '')}`,
+      siteName: siteObj?.name || 'CPR Site',
+      inviteUrl: `${origin}/?activate=${encodeURIComponent(emp.email || '')}`,
     });
     setCopiedLink(false);
   };
@@ -256,8 +256,8 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     e.preventDefault();
     if (!projName.trim()) return;
 
-    const lat = projLatitude ? parseFloat(projLatitude) : 19.4326;
-    const lon = projLongitude ? parseFloat(projLongitude) : -99.1332;
+    const lat = projLatitude ? parseFloat(projLatitude) : -33.8688;
+    const lon = projLongitude ? parseFloat(projLongitude) : 151.2093;
 
     if (editingProjectId && onUpdateProject) {
       const existing = projects.find((p) => p.id === editingProjectId);
@@ -266,7 +266,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
           ...existing,
           name: projName.trim(),
           code: projCode.trim() || existing.code,
-          address: projAddress.trim() || 'Dirección de obra en campo',
+          address: projAddress.trim() || 'On-site address',
           client: projClient.trim(),
           latitude: isNaN(lat) ? undefined : lat,
           longitude: isNaN(lon) ? undefined : lon,
@@ -278,7 +278,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
       onAddProject({
         name: projName.trim(),
         code: projCode.trim() || `CPR-${Math.floor(100 + Math.random() * 900)}`,
-        address: projAddress.trim() || 'Dirección de obra en campo',
+        address: projAddress.trim() || 'On-site address',
         client: projClient.trim(),
         active: true,
         latitude: isNaN(lat) ? undefined : lat,
@@ -307,7 +307,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
             }`}
           >
             <Users className="w-4 h-4" />
-            <span>{isAdminOrManager ? `Colaboradores (${employees.length})` : 'Mi Perfil'}</span>
+            <span>{isAdminOrManager ? `Employees (${employees.length})` : 'My Profile'}</span>
           </button>
           <button
             onClick={() => setActiveSubTab('projects')}
@@ -318,7 +318,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
             }`}
           >
             <Building2 className="w-4 h-4" />
-            <span>Sedes & Proyectos ({projects.length})</span>
+            <span>Sites & Projects ({projects.length})</span>
           </button>
         </div>
 
@@ -331,7 +331,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                 className="px-4 py-2 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/30 flex items-center gap-2 transition-all cursor-pointer"
               >
                 <UserPlus className="w-4 h-4 text-white" />
-                <span>Invitar Colaborador</span>
+                <span>Invite Employee</span>
               </button>
             ) : (
               <button
@@ -339,14 +339,14 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                 className="px-4 py-2 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/30 flex items-center gap-2 transition-all cursor-pointer"
               >
                 <Plus className="w-4 h-4 text-white" />
-                <span>Nueva Sede / Proyecto</span>
+                <span>New Site / Project</span>
               </button>
             )}
 
             <button
               onClick={() => onResetData()}
               className="p-2 text-xs rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-300 transition-colors cursor-pointer shadow-2xs"
-              title="Actualizar datos desde el servidor"
+              title="Refresh data from the server"
             >
               <RefreshCw className="w-4 h-4" />
             </button>
@@ -360,10 +360,10 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
           {(isAdminOrManager ? employees : employees.filter((e) => e.id === currentUser.id)).map((emp) => {
             const roleBadge =
               emp.systemRole === 'admin'
-                ? { label: 'Administrador', color: 'bg-emerald-100 text-emerald-900 border-emerald-300' }
+                ? { label: 'Administrator', color: 'bg-emerald-100 text-emerald-900 border-emerald-300' }
                 : emp.systemRole === 'manager'
                 ? { label: 'Manager', color: 'bg-blue-100 text-blue-900 border-blue-300' }
-                : { label: 'Colaborador', color: 'bg-slate-100 text-slate-800 border-slate-300' };
+                : { label: 'Employee', color: 'bg-slate-100 text-slate-800 border-slate-300' };
 
             return (
               <div
@@ -396,7 +396,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                   <div className="mt-4 pt-3 border-t border-slate-200 space-y-2 text-xs">
                     {/* Contract type */}
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-500 font-medium">Contrato:</span>
+                      <span className="text-slate-500 font-medium">Contract:</span>
                       <span
                         className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                           emp.contractType === 'Internal Team'
@@ -404,28 +404,28 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                             : 'bg-purple-100 text-purple-900 border-purple-300'
                         }`}
                       >
-                        {emp.contractType || 'Internal Team'}
+                        {contractTypeLabel(emp.contractType)}
                       </span>
                     </div>
 
                     {/* Email */}
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-500 font-medium">Correo:</span>
+                      <span className="text-slate-500 font-medium">Email:</span>
                       <span className="font-mono text-xs text-slate-800 font-semibold truncate max-w-[170px]">
-                        {emp.email || 'Sin correo'}
+                        {emp.email || 'No email'}
                       </span>
                     </div>
 
                     {/* Password activation state */}
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-500 font-medium">Clave de acceso:</span>
+                      <span className="text-slate-500 font-medium">Password:</span>
                       {emp.invitationStatus === 'pending' ? (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">
-                          Pendiente de activar
+                          Pending activation
                         </span>
                       ) : (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-300">
-                          Configurada
+                          Set
                         </span>
                       )}
                     </div>
@@ -439,10 +439,10 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                       <button
                         onClick={() => handleShareExistingEmployeeInvite(emp)}
                         className="px-2.5 py-1 text-xs font-bold rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 flex items-center gap-1 transition-colors cursor-pointer"
-                        title="Compartir enlace de invitación / clave"
+                        title="Share invitation / password link"
                       >
                         <Share2 className="w-3.5 h-3.5" />
-                        <span>Invitar / Enlace</span>
+                        <span>Invite / Link</span>
                       </button>
                     )}
                   </div>
@@ -452,18 +452,18 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                       <button
                         onClick={() => setEditingEmployee(emp)}
                         className="p-1.5 rounded-lg text-slate-600 hover:text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer"
-                        title="Editar colaborador"
+                        title="Edit employee"
                       >
                         <Edit3 className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => {
-                          if (window.confirm(`¿Seguro que deseas eliminar a ${emp.name}?`)) {
+                          if (window.confirm(`Are you sure you want to delete ${emp.name}?`)) {
                             onDeleteEmployee(emp.id);
                           }
                         }}
                         className="p-1.5 rounded-lg text-slate-500 hover:text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
-                        title="Eliminar colaborador"
+                        title="Delete employee"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -502,18 +502,18 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                         <button
                           onClick={() => handleOpenEditProject(proj)}
                           className="p-1.5 rounded-lg text-slate-600 hover:text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer"
-                          title="Editar sede y geocerca"
+                          title="Edit site and geofence"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => {
-                            if (window.confirm(`¿Eliminar la sede ${proj.name}?`)) {
+                            if (window.confirm(`Delete the site ${proj.name}?`)) {
                               onDeleteProject(proj.id);
                             }
                           }}
                           className="p-1.5 rounded-lg text-slate-500 hover:text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
-                          title="Eliminar sede"
+                          title="Delete site"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -531,7 +531,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
 
                 <div className="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between">
                   <span className="text-[10px] text-emerald-900 font-bold px-2 py-0.5 rounded-full bg-emerald-100 border border-emerald-300">
-                    Sede Activa
+                    Active Site
                   </span>
                   <span className="text-xs font-mono font-bold text-slate-600">ID: {proj.code}</span>
                 </div>
@@ -551,9 +551,9 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                   <Mail className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-base font-black text-slate-900">Invitar Nuevo Colaborador</h2>
+                  <h2 className="text-base font-black text-slate-900">Invite New Employee</h2>
                   <p className="text-xs text-slate-600 font-medium mt-0.5">
-                    El trabajador creará su clave de acceso al ingresar con su correo.
+                    The worker will create their password when they sign in with their email.
                   </p>
                 </div>
               </div>
@@ -566,36 +566,36 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
             </div>
 
             <form onSubmit={handleCreateEmployee} className="space-y-3.5">
-              {/* Correo Electrónico */}
+              {/* Email */}
               <div>
                 <label className="text-xs font-bold text-slate-900 block mb-1">
-                  Correo Electrónico (Email del Trabajador) *
+                  Worker Email *
                 </label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="email"
                     required
-                    placeholder="ejemplo@cpr.org"
+                    placeholder="name@example.com"
                     value={empEmail}
                     onChange={(e) => setEmpEmail(e.target.value)}
                     className="w-full bg-white border-2 border-slate-300 rounded-xl pl-9 pr-3 py-2 text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600"
                   />
                 </div>
                 <p className="text-xs text-slate-600 mt-1 font-medium">
-                  Con este correo el colaborador activará su cuenta y configurará su clave secreta.
+                  The employee will use this email to activate their account and set their password.
                 </p>
               </div>
 
-              {/* Nombre Completo */}
+              {/* Full name */}
               <div>
                 <label className="text-xs font-bold text-slate-900 block mb-1">
-                  Nombre y Apellidos *
+                  Full Name *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="Ej. Juan Pérez González"
+                  placeholder="e.g. John Smith"
                   value={empName}
                   onChange={(e) => setEmpName(e.target.value)}
                   className="w-full bg-white border-2 border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600"
@@ -605,23 +605,23 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
               {/* Role selector */}
               <div>
                 <label className="text-xs font-bold text-slate-900 block mb-1">
-                  Rol / Nivel de Acceso en el Sistema
+                  System Role / Access Level
                 </label>
                 <select
                   value={empSystemRole}
                   onChange={(e) => setEmpSystemRole(e.target.value as any)}
                   className="w-full bg-white border-2 border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600 cursor-pointer"
                 >
-                  <option value="employee">Colaborador (Solo registro de marcaciones personales)</option>
-                  <option value="manager">Manager (Supervisión de equipo y sedes)</option>
-                  <option value="admin">Administrador (Control total del sistema)</option>
+                  <option value="employee">Employee (own time entries only)</option>
+                  <option value="manager">Manager (team and site supervision)</option>
+                  <option value="admin">Administrator (full system control)</option>
                 </select>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-900 block mb-1">
-                    Tipo de Personal
+                    Staff Type
                   </label>
                   <select
                     value={empContractType}
@@ -629,18 +629,18 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                     className="w-full bg-white border-2 border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600 cursor-pointer"
                   >
                     <option value="Internal Team">Internal Team</option>
-                    <option value="ASP Contratista">ASP Contratista</option>
+                    <option value="ASP Contratista">ASP Contractor</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="text-xs font-bold text-slate-900 block mb-1">
-                    Puesto / Especialidad
+                    Position / Trade
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="Ej. Instalador Fachadas"
+                    placeholder="e.g. Facade Installer"
                     value={empRole}
                     onChange={(e) => setEmpRole(e.target.value)}
                     className="w-full bg-white border-2 border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600"
@@ -648,14 +648,14 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                 </div>
               </div>
 
-              {/* Teléfono */}
+              {/* Phone */}
               <div>
                 <label className="text-xs font-bold text-slate-900 block mb-1">
-                  Teléfono (WhatsApp opcional)
+                  Phone (WhatsApp, optional)
                 </label>
                 <input
                   type="tel"
-                  placeholder="+52 55 ..."
+                  placeholder="+61 4XX XXX XXX"
                   value={empPhone}
                   onChange={(e) => setEmpPhone(e.target.value)}
                   className="w-full bg-white border-2 border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600"
@@ -665,7 +665,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
               {/* Color picker */}
               <div>
                 <label className="text-xs font-bold text-slate-900 block mb-1.5">
-                  Color de Avatar
+                  Avatar Colour
                 </label>
                 <div className="flex items-center gap-2">
                   {AVATAR_COLORS.map((c) => (
@@ -687,10 +687,10 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
               <div className="p-3.5 rounded-2xl bg-blue-50 border border-blue-200 text-xs text-slate-800 space-y-1">
                 <div className="flex items-center gap-1.5 font-bold text-blue-800">
                   <Shield className="w-4 h-4" />
-                  <span>Seguridad y Creación de Claves</span>
+                  <span>Security and Passwords</span>
                 </div>
                 <p className="text-slate-600 font-medium">
-                  No necesitas asignarle una clave. Al guardar, se genera una invitación para que el trabajador ingrese y configure su contraseña privada de acceso.
+                  You do not need to assign a password. Saving creates an invitation so the worker can sign in and set their own private password.
                 </p>
               </div>
 
@@ -700,14 +700,14 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                   onClick={() => setShowAddEmployee(false)}
                   className="px-4 py-2 text-xs font-bold text-slate-700 hover:text-slate-900 cursor-pointer"
                 >
-                  Cancelar
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2.5 text-xs font-black bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md shadow-blue-600/30 flex items-center gap-2 cursor-pointer transition-all"
                 >
                   <Mail className="w-4 h-4 text-white" />
-                  <span>Enviar Invitación</span>
+                  <span>Send Invitation</span>
                 </button>
               </div>
             </form>
@@ -720,7 +720,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
           <div className="w-full max-w-lg bg-white border border-slate-200 rounded-3xl p-6 sm:p-7 shadow-2xl space-y-4">
             <div className="flex items-start justify-between pb-3 border-b border-slate-200">
-              <h2 className="text-base font-black text-slate-900">Editar Colaborador</h2>
+              <h2 className="text-base font-black text-slate-900">Edit Employee</h2>
               <button
                 onClick={() => setEditingEmployee(null)}
                 className="p-1 rounded-lg text-slate-500 hover:text-slate-900 cursor-pointer"
@@ -742,7 +742,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
               className="space-y-3.5"
             >
               <div>
-                <label className="text-xs font-bold text-slate-900 block mb-1">Nombre</label>
+                <label className="text-xs font-bold text-slate-900 block mb-1">Name</label>
                 <input
                   type="text"
                   required
@@ -753,7 +753,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-900 block mb-1">Puesto</label>
+                <label className="text-xs font-bold text-slate-900 block mb-1">Position</label>
                 <input
                   type="text"
                   required
@@ -765,33 +765,33 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-slate-900 block mb-1">Rol Sistema</label>
+                  <label className="text-xs font-bold text-slate-900 block mb-1">System Role</label>
                   <select
                     value={editingEmployee.systemRole || 'employee'}
                     onChange={(e) => setEditingEmployee({ ...editingEmployee, systemRole: e.target.value as any })}
                     className="w-full bg-white border-2 border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600 cursor-pointer"
                   >
-                    <option value="employee">Colaborador</option>
+                    <option value="employee">Employee</option>
                     <option value="manager">Manager</option>
-                    <option value="admin">Administrador</option>
+                    <option value="admin">Administrator</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-900 block mb-1">Contrato</label>
+                  <label className="text-xs font-bold text-slate-900 block mb-1">Contract</label>
                   <select
                     value={editingEmployee.contractType || 'Internal Team'}
                     onChange={(e) => setEditingEmployee({ ...editingEmployee, contractType: e.target.value as any })}
                     className="w-full bg-white border-2 border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600 cursor-pointer"
                   >
                     <option value="Internal Team">Internal Team</option>
-                    <option value="ASP Contratista">ASP Contratista</option>
+                    <option value="ASP Contratista">ASP Contractor</option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-900 block mb-1">Correo</label>
+                <label className="text-xs font-bold text-slate-900 block mb-1">Email</label>
                 <input
                   type="email"
                   value={editingEmployee.email || ''}
@@ -801,7 +801,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-900 block mb-1">Teléfono</label>
+                <label className="text-xs font-bold text-slate-900 block mb-1">Phone</label>
                 <input
                   type="tel"
                   value={editingEmployee.phone || ''}
@@ -816,13 +816,13 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                   onClick={() => setEditingEmployee(null)}
                   className="px-4 py-2 text-xs font-bold text-slate-700 hover:text-slate-900 cursor-pointer"
                 >
-                  Cancelar
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2.5 text-xs font-black bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md cursor-pointer"
                 >
-                  Guardar Cambios
+                  Save Changes
                 </button>
               </div>
             </form>
@@ -840,9 +840,9 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                   <CheckCircle2 className="w-5 h-5 text-emerald-700" />
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-slate-900">Invitación Lista</h3>
+                  <h3 className="text-base font-black text-slate-900">Invitation Ready</h3>
                   <p className="text-xs text-slate-600 font-medium">
-                    El colaborador ya puede crear su clave de acceso.
+                    The employee can now create their password.
                   </p>
                 </div>
               </div>
@@ -857,22 +857,22 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
             {/* Employee details summary */}
             <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
               <div className="flex justify-between">
-                <span className="text-slate-600 font-medium">Colaborador:</span>
+                <span className="text-slate-600 font-medium">Employee:</span>
                 <span className="font-bold text-slate-900">{inviteModalData.name}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-600 font-medium">Correo Registrado:</span>
+                <span className="text-slate-600 font-medium">Registered Email:</span>
                 <span className="font-mono text-blue-800 font-bold truncate max-w-[200px]">
                   {inviteModalData.email}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-600 font-medium">Puesto / Cargo:</span>
+                <span className="text-slate-600 font-medium">Position:</span>
                 <span className="text-slate-800 font-semibold">{inviteModalData.role}</span>
               </div>
               {inviteModalData.siteName && (
                 <div className="flex justify-between">
-                  <span className="text-slate-600 font-medium">Sede Asignada:</span>
+                  <span className="text-slate-600 font-medium">Assigned Site:</span>
                   <span className="text-slate-800 font-semibold truncate max-w-[180px]">
                     {inviteModalData.siteName}
                   </span>
@@ -884,7 +884,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
                 <Link2 className="w-4 h-4 text-blue-700" />
-                <span>Enlace de Activación Directo:</span>
+                <span>Direct Activation Link:</span>
               </label>
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-300 font-mono text-xs text-slate-900 break-all select-all flex items-center justify-between gap-2">
                 <span className="truncate">{inviteModalData.inviteUrl}</span>
@@ -900,12 +900,12 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                   {copiedLink ? (
                     <>
                       <Check className="w-3.5 h-3.5" />
-                      <span>¡Copiado!</span>
+                      <span>Copied!</span>
                     </>
                   ) : (
                     <>
                       <Copy className="w-3.5 h-3.5" />
-                      <span>Copiar</span>
+                      <span>Copy</span>
                     </>
                   )}
                 </button>
@@ -916,38 +916,38 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
             <div className="grid grid-cols-2 gap-2 pt-1">
               <a
                 href={`https://wa.me/?text=${encodeURIComponent(
-                  `Hola ${inviteModalData.name}, has sido agregado a CPR Clock. Activa tu cuenta y crea tu clave de acceso aquí: ${inviteModalData.inviteUrl}`
+                  `Hi ${inviteModalData.name}, you have been added to CPR Clock. Activate your account and create your password here: ${inviteModalData.inviteUrl}`
                 )}`}
                 target="_blank"
                 rel="noreferrer"
                 className="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs"
               >
                 <Share2 className="w-4 h-4 text-white" />
-                <span>Enviar WhatsApp</span>
+                <span>Send via WhatsApp</span>
               </a>
 
               <a
                 href={`mailto:${inviteModalData.email}?subject=${encodeURIComponent(
-                  'Invitación a CPR Clock - Crea tu Clave de Acceso'
+                  'CPR Clock Invitation - Create Your Password'
                 )}&body=${encodeURIComponent(
-                  `Hola ${inviteModalData.name},\n\nHas sido registrado en la plataforma de control de asistencia de CPR Facade Upgrade Specialists.\n\nPor favor haz clic en el siguiente enlace para crear tu clave de acceso personal:\n${inviteModalData.inviteUrl}\n\n¡Bienvenido al equipo!`
+                  `Hi ${inviteModalData.name},\n\nYou have been registered on the CPR Facade Upgrade Specialists time and attendance platform.\n\nPlease click the link below to create your personal password:\n${inviteModalData.inviteUrl}\n\nWelcome to the team!`
                 )}`}
                 className="py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs"
               >
                 <Mail className="w-4 h-4 text-white" />
-                <span>Enviar Correo</span>
+                <span>Send Email</span>
               </a>
             </div>
 
             <p className="text-xs text-slate-600 text-center font-medium">
-              El colaborador también puede ir a la pantalla de ingreso y seleccionar <strong className="text-slate-900">"Crear mi clave de acceso"</strong> ingresando su correo registrado.
+              The employee can also go to the sign-in screen and choose <strong className="text-slate-900">"Set your password"</strong>, entering their registered email.
             </p>
 
             <button
               onClick={() => setInviteModalData(null)}
               className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold text-xs border border-slate-300 transition-colors cursor-pointer"
             >
-              Listo, cerrar
+              Done, close
             </button>
           </div>
         </div>
@@ -964,10 +964,10 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                 </div>
                 <div>
                   <h2 className="text-base font-black text-slate-900">
-                    {editingProjectId ? 'Configurar Sede y Geocerca' : 'Nueva Sede / Proyecto'}
+                    {editingProjectId ? 'Configure Site and Geofence' : 'New Site / Project'}
                   </h2>
                   <p className="text-xs text-slate-600 font-medium">
-                    Establece el perímetro y radio para la salida automática por geolocalización
+                    Set the perimeter and radius for automatic geofence clock-out
                   </p>
                 </div>
               </div>
@@ -985,12 +985,12 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
             <form onSubmit={handleSaveProject} className="space-y-4">
               <div>
                 <label className="text-xs text-slate-900 font-bold block mb-1">
-                  Nombre del Proyecto / Sede *
+                  Project / Site Name *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="Ej. Proyecto CPR - Obra Tramo Norte"
+                  placeholder="e.g. CPR Project - North Tower"
                   value={projName}
                   onChange={(e) => setProjName(e.target.value)}
                   className="w-full bg-white border-2 border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600"
@@ -999,10 +999,10 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-slate-900 font-bold block mb-1">Código</label>
+                  <label className="text-xs text-slate-900 font-bold block mb-1">Code</label>
                   <input
                     type="text"
-                    placeholder="Ej. CPR-005"
+                    placeholder="e.g. CPR-005"
                     value={projCode}
                     onChange={(e) => setProjCode(e.target.value)}
                     className="w-full bg-white border-2 border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 font-mono focus:outline-none focus:border-blue-600"
@@ -1010,10 +1010,10 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-900 font-bold block mb-1">Cliente / Área</label>
+                  <label className="text-xs text-slate-900 font-bold block mb-1">Client / Area</label>
                   <input
                     type="text"
-                    placeholder="Ej. Constructora CPR"
+                    placeholder="e.g. CPR Construction"
                     value={projClient}
                     onChange={(e) => setProjClient(e.target.value)}
                     className="w-full bg-white border-2 border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
@@ -1024,7 +1024,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-xs text-slate-900 font-bold">
-                    Dirección o Referencia de la Sede
+                    Site Address or Reference
                   </label>
                   {isOnlyAdmin && (
                     <button
@@ -1032,16 +1032,16 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                       onClick={handleGeocodeAddress}
                       disabled={isGeocoding || !projAddress.trim()}
                       className="text-xs font-bold text-blue-700 hover:text-blue-900 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200 transition-all disabled:opacity-50 cursor-pointer"
-                      title="Obtener coordenadas GPS automáticamente a partir de esta dirección"
+                      title="Get GPS coordinates automatically from this address"
                     >
                       <Search className={`w-3 h-3 ${isGeocoding ? 'animate-spin' : ''}`} />
-                      <span>{isGeocoding ? 'Buscando GPS...' : 'Obtener Coordenadas por Dirección'}</span>
+                      <span>{isGeocoding ? 'Searching GPS...' : 'Get Coordinates from Address'}</span>
                     </button>
                   )}
                 </div>
                 <input
                   type="text"
-                  placeholder="Ej. Paseo de la Reforma 222, CDMX o Av. Providencia 1234, Santiago"
+                  placeholder="e.g. 123 George St, Sydney NSW 2000"
                   value={projAddress}
                   onChange={(e) => {
                     setProjAddress(e.target.value);
@@ -1062,19 +1062,19 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                   </div>
                 )}
                 <p className="text-xs text-slate-600 mt-1 font-medium">
-                  💡 Escribe la dirección y haz clic en <span className="text-blue-800 font-bold">"Obtener Coordenadas por Dirección"</span> para calcular la latitud y longitud.
+                  💡 Type the address and click <span className="text-blue-800 font-bold">"Get Coordinates from Address"</span> to calculate the latitude and longitude.
                 </p>
               </div>
 
-              {/* Control de Geocerca (Solo Administrador) */}
+              {/* Geofence control (admin only) */}
               {isOnlyAdmin ? (
                 <>
-                  {/* Coordenadas GPS */}
+                  {/* GPS coordinates */}
                   <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
                         <MapPin className="w-4 h-4 text-blue-700" />
-                        Punto Central de la Sede (GPS)
+                        Site Centre Point (GPS)
                       </span>
                       <button
                         type="button"
@@ -1083,7 +1083,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                         className="text-xs text-blue-700 hover:text-blue-900 flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-slate-300 font-bold cursor-pointer transition-colors shadow-2xs"
                       >
                         <Navigation className={`w-3 h-3 ${isCapturingGps ? 'animate-spin' : ''}`} />
-                        <span>{isCapturingGps ? 'Obteniendo GPS...' : 'Usar mi ubicación actual'}</span>
+                        <span>{isCapturingGps ? 'Getting GPS...' : 'Use my current location'}</span>
                       </button>
                     </div>
 
@@ -1093,22 +1093,22 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs font-bold text-slate-700 block mb-1">Latitud</label>
+                        <label className="text-xs font-bold text-slate-700 block mb-1">Latitude</label>
                         <input
                           type="number"
                           step="any"
-                          placeholder="Ej. 19.4326"
+                          placeholder="e.g. -33.8688"
                           value={projLatitude}
                           onChange={(e) => setProjLatitude(e.target.value)}
                           className="w-full bg-white border-2 border-slate-300 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-900 font-mono focus:outline-none focus:border-blue-600"
                         />
                       </div>
                       <div>
-                        <label className="text-xs font-bold text-slate-700 block mb-1">Longitud</label>
+                        <label className="text-xs font-bold text-slate-700 block mb-1">Longitude</label>
                         <input
                           type="number"
                           step="any"
-                          placeholder="Ej. -99.1332"
+                          placeholder="e.g. 151.2093"
                           value={projLongitude}
                           onChange={(e) => setProjLongitude(e.target.value)}
                           className="w-full bg-white border-2 border-slate-300 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-900 font-mono focus:outline-none focus:border-blue-600"
@@ -1117,21 +1117,21 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                     </div>
                   </div>
 
-                  {/* Radio de Geocerca */}
+                  {/* Geofence radius */}
                   <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
                         <Radio className="w-4 h-4 text-blue-700" />
-                        Radio de la Geocerca (Metros)
+                        Geofence Radius (Metres)
                       </span>
                       <span className="text-xs font-mono font-black text-blue-900 bg-blue-100 px-2.5 py-0.5 rounded-lg border border-blue-300">
-                        {projRadius} metros
+                        {projRadius} metres
                       </span>
                     </div>
 
                     {/* Preset buttons */}
                     <div>
-                      <span className="text-xs font-bold text-slate-700 block mb-1.5">Valores rápidos:</span>
+                      <span className="text-xs font-bold text-slate-700 block mb-1.5">Quick values:</span>
                       <div className="grid grid-cols-6 gap-1.5">
                         {RADIUS_PRESETS.map((r) => (
                           <button
@@ -1153,7 +1153,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                     {/* Custom radius input */}
                     <div>
                       <label className="text-xs font-bold text-slate-700 block mb-1">
-                        O especifica un radio personalizado (en metros):
+                        Or enter a custom radius (in metres):
                       </label>
                       <div className="relative">
                         <input
@@ -1165,7 +1165,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                           className="w-full bg-white border-2 border-slate-300 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-900 font-mono focus:outline-none focus:border-blue-600"
                         />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-600 font-mono font-bold">
-                          metros
+                          metres
                         </span>
                       </div>
                     </div>
@@ -1181,10 +1181,10 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                       />
                       <label htmlFor="autoClockOutCheck" className="text-xs text-slate-800 cursor-pointer">
                         <strong className="text-slate-900 block font-bold">
-                          Registrar salida automática si la persona sale del área
+                          Clock out automatically when the person leaves the area
                         </strong>
                         <span className="text-xs text-slate-600 block mt-0.5 font-medium">
-                          Si el colaborador sale del radio de {projRadius} metros mientras está en turno, el sistema registrará automáticamente su salida (Clock Out) con la nota de geocerca.
+                          If the employee leaves the {projRadius} metre radius while on shift, the system will clock them out automatically with a geofence note.
                         </span>
                       </label>
                     </div>
@@ -1195,16 +1195,16 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                   <div className="flex items-center gap-2 text-slate-800">
                     <Lock className="w-4 h-4 text-blue-700 shrink-0" />
                     <span className="text-xs font-bold text-slate-900">
-                      Control de Geocerca y Coordenadas (Exclusivo Administrador)
+                      Geofence and Coordinates Control (Administrator Only)
                     </span>
                   </div>
                   <p className="text-xs text-slate-600 font-medium">
-                    Solo el Administrador del sistema tiene permisos para configurar o modificar las coordenadas GPS y el radio de geocerca de esta sede.
+                    Only the system Administrator can configure or change the GPS coordinates and geofence radius of this site.
                   </p>
                   <div className="flex items-center gap-3 pt-1 text-xs font-mono font-bold text-slate-800">
-                    <span>Radio actual: <strong className="text-blue-800">{projRadius}m</strong></span>
+                    <span>Current radius: <strong className="text-blue-800">{projRadius}m</strong></span>
                     <span>·</span>
-                    <span>Salida automática: <strong className={projAutoClockOut ? 'text-emerald-800' : 'text-slate-600'}>{projAutoClockOut ? 'Activa' : 'Inactiva'}</strong></span>
+                    <span>Automatic clock-out: <strong className={projAutoClockOut ? 'text-emerald-800' : 'text-slate-600'}>{projAutoClockOut ? 'On' : 'Off'}</strong></span>
                   </div>
                 </div>
               )}
@@ -1218,13 +1218,13 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                   }}
                   className="px-4 py-2 text-xs font-bold text-slate-700 hover:text-slate-900 cursor-pointer"
                 >
-                  Cancelar
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2.5 text-xs font-black bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md cursor-pointer transition-colors"
                 >
-                  {editingProjectId ? 'Actualizar Sede' : 'Guardar Sede'}
+                  {editingProjectId ? 'Update Site' : 'Save Site'}
                 </button>
               </div>
             </form>

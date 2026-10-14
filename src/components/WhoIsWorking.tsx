@@ -9,7 +9,7 @@ import {
   Shield,
   ArrowRight,
 } from 'lucide-react';
-import { Employee, ProjectSite, TimeEntry } from '../types';
+import { Employee, ProjectSite, TimeEntry, contractTypeLabel } from '../types';
 import { calculateElapsedHours, formatTimeDisplay } from '../utils/storage';
 
 interface WhoIsWorkingProps {
@@ -73,7 +73,7 @@ export const WhoIsWorking: React.FC<WhoIsWorkingProps> = ({
                         : 'bg-purple-100 text-purple-900 border-purple-300'
                     }`}
                   >
-                    {currentUser.contractType || 'Internal Team'}
+                    {contractTypeLabel(currentUser.contractType)}
                   </span>
                 </div>
                 <div className="mt-2.5">
@@ -84,7 +84,7 @@ export const WhoIsWorking: React.FC<WhoIsWorkingProps> = ({
                         : 'bg-slate-100 text-slate-800 border-slate-300'
                     }`}
                   >
-                    {currentUser.status === 'clocked_in' ? '● En Turno Activo' : '○ Fuera de Turno'}
+                    {currentUser.status === 'clocked_in' ? '● On Shift' : '○ Off Shift'}
                   </span>
                 </div>
               </div>
@@ -94,7 +94,7 @@ export const WhoIsWorking: React.FC<WhoIsWorkingProps> = ({
               onClick={onGoToPunchTab}
               className="px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer"
             >
-              <span>{currentUser.status === 'clocked_in' ? 'Registrar Salida' : 'Registrar Entrada'}</span>
+              <span>{currentUser.status === 'clocked_in' ? 'Clock Out' : 'Clock In'}</span>
               <ArrowRight className="w-4 h-4 text-white" />
             </button>
           </div>
@@ -106,30 +106,30 @@ export const WhoIsWorking: React.FC<WhoIsWorkingProps> = ({
                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-1.5">
                   <span className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
                     <Building2 className="w-4 h-4 text-blue-700" />
-                    Sede / Obra Asignada
+                    Assigned Site / Job
                   </span>
                   <div className="text-base font-bold text-slate-900">{activeShift.projectName}</div>
-                  <p className="text-xs text-slate-600 font-medium">{activeProject?.address || 'Ubicación de trabajo'}</p>
+                  <p className="text-xs text-slate-600 font-medium">{activeProject?.address || 'Work location'}</p>
                 </div>
 
                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-1.5">
                   <span className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
                     <Clock className="w-4 h-4 text-blue-700" />
-                    Hora de Ingreso
+                    Clock-In Time
                   </span>
                   <div className="text-base font-bold text-slate-900 font-mono">
                     {formatTimeDisplay(activeShift.clockInTime)}
                   </div>
                   {elapsedInfo && (
                     <div className="text-xs text-emerald-800 font-mono font-bold">
-                      Tiempo transcurrido: {elapsedInfo.formatted}
+                      Elapsed time: {elapsedInfo.formatted}
                     </div>
                   )}
                 </div>
 
                 {activeShift.notes && (
                   <div className="col-span-full bg-slate-50 p-4 rounded-2xl border border-slate-200">
-                    <span className="text-xs font-bold text-slate-700 block mb-1">Notas del turno:</span>
+                    <span className="text-xs font-bold text-slate-700 block mb-1">Shift notes:</span>
                     <p className="text-xs text-slate-800 italic font-medium">"{activeShift.notes}"</p>
                   </div>
                 )}
@@ -137,16 +137,16 @@ export const WhoIsWorking: React.FC<WhoIsWorkingProps> = ({
             ) : (
               <div className="text-center py-10 bg-slate-50 rounded-2xl border border-slate-200 space-y-2.5">
                 <Clock className="w-10 h-10 text-slate-400 mx-auto" />
-                <h3 className="text-sm font-bold text-slate-900">No tienes un turno activo en este momento</h3>
+                <h3 className="text-sm font-bold text-slate-900">You have no active shift right now</h3>
                 <p className="text-xs text-slate-600 font-medium max-w-sm mx-auto">
-                  Dirígete a la pestaña Marcador para registrar tu entrada oficial cuando inicies labores.
+                  Go to the Time Clock tab to clock in when you start work.
                 </p>
                 <div className="pt-2">
                   <button
                     onClick={onGoToPunchTab}
                     className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold cursor-pointer shadow-xs"
                   >
-                    Abrir Marcador
+                    Open Time Clock
                   </button>
                 </div>
               </div>
@@ -194,11 +194,11 @@ export const WhoIsWorking: React.FC<WhoIsWorkingProps> = ({
         <div className="flex items-center gap-2.5">
           <Shield className="w-4 h-4 text-blue-700 shrink-0" />
           <span>
-            <strong className="text-slate-900 font-bold">Vista de Supervisión:</strong> Tienes permisos de {currentUser.systemRole === 'admin' ? 'Administrador' : 'Manager'} para visualizar a todos los trabajadores de la empresa.
+            <strong className="text-slate-900 font-bold">Supervisor View:</strong> You have {currentUser.systemRole === 'admin' ? 'Administrator' : 'Manager'} permissions to view every worker in the company.
           </span>
         </div>
         <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-white text-blue-800 border border-blue-200 shrink-0 shadow-2xs">
-          Acceso Total
+          Full Access
         </span>
       </div>
 
@@ -206,44 +206,44 @@ export const WhoIsWorking: React.FC<WhoIsWorkingProps> = ({
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
         <div className="bg-white border border-slate-200 p-4 rounded-2xl flex flex-col justify-between shadow-xs">
           <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">
-            Total Equipo
+            Total Team
           </span>
           <div className="text-2xl sm:text-3xl font-black font-mono text-slate-900 mt-1">
             {employees.length}
           </div>
-          <span className="text-xs text-slate-500 font-medium mt-1">Colaboradores registrados</span>
+          <span className="text-xs text-slate-500 font-medium mt-1">Registered employees</span>
         </div>
 
         <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-2xl flex flex-col justify-between shadow-xs">
           <span className="text-xs font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse" />
-            En Turno
+            On Shift
           </span>
           <div className="text-2xl sm:text-3xl font-black font-mono text-emerald-900 mt-1">
             {clockedInCount}
           </div>
-          <span className="text-xs text-emerald-800 font-medium mt-1">Laborando actualmente</span>
+          <span className="text-xs text-emerald-800 font-medium mt-1">Currently working</span>
         </div>
 
         <div className="bg-white border border-slate-200 p-4 rounded-2xl flex flex-col justify-between shadow-xs">
           <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">
-            Fuera de Turno
+            Off Shift
           </span>
           <div className="text-2xl sm:text-3xl font-black font-mono text-slate-800 mt-1">
             {clockedOutCount}
           </div>
-          <span className="text-xs text-slate-500 font-medium mt-1">Sin turno activo</span>
+          <span className="text-xs text-slate-500 font-medium mt-1">No active shift</span>
         </div>
 
         <div className="bg-blue-50 border border-blue-200 p-4 rounded-2xl flex flex-col justify-between shadow-xs">
           <span className="text-xs font-bold text-blue-900 uppercase tracking-wider flex items-center gap-1.5">
             <Building2 className="w-4 h-4 text-blue-700" />
-            Sedes CPR
+            CPR Sites
           </span>
           <div className="text-2xl sm:text-3xl font-black font-mono text-blue-900 mt-1">
             {projects.length}
           </div>
-          <span className="text-xs text-blue-800 font-medium mt-1">Centros de trabajo</span>
+          <span className="text-xs text-blue-800 font-medium mt-1">Work sites</span>
         </div>
       </div>
 
@@ -254,7 +254,7 @@ export const WhoIsWorking: React.FC<WhoIsWorkingProps> = ({
             <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Buscar colaborador..."
+              placeholder="Search employee..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-9 pr-4 py-2 bg-slate-50 border-2 border-slate-200 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition-colors"
@@ -271,7 +271,7 @@ export const WhoIsWorking: React.FC<WhoIsWorkingProps> = ({
                   : 'text-slate-700 hover:text-slate-900 hover:bg-white'
               }`}
             >
-              Todos ({employees.length})
+              All ({employees.length})
             </button>
             <button
               onClick={() => setStatusFilter('clocked_in')}
@@ -281,7 +281,7 @@ export const WhoIsWorking: React.FC<WhoIsWorkingProps> = ({
                   : 'text-emerald-800 hover:bg-emerald-100'
               }`}
             >
-              En Turno ({clockedInCount})
+              On Shift ({clockedInCount})
             </button>
             <button
               onClick={() => setStatusFilter('clocked_out')}
@@ -291,7 +291,7 @@ export const WhoIsWorking: React.FC<WhoIsWorkingProps> = ({
                   : 'text-slate-700 hover:bg-white'
               }`}
             >
-              Fuera ({clockedOutCount})
+              Off ({clockedOutCount})
             </button>
           </div>
         </div>
@@ -299,7 +299,7 @@ export const WhoIsWorking: React.FC<WhoIsWorkingProps> = ({
         {/* Contract Type and Location filters */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2 border-t border-slate-200">
           <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
-            <span className="text-xs font-bold text-slate-700 shrink-0">Personal:</span>
+            <span className="text-xs font-bold text-slate-700 shrink-0">Staff:</span>
             <button
               onClick={() => setContractTypeFilter('all')}
               className={`px-3 py-1 text-xs font-bold rounded-lg whitespace-nowrap transition-colors cursor-pointer ${
@@ -308,7 +308,7 @@ export const WhoIsWorking: React.FC<WhoIsWorkingProps> = ({
                   : 'text-slate-700 hover:bg-slate-100'
               }`}
             >
-              Todos
+              All
             </button>
             <button
               onClick={() => setContractTypeFilter('Internal Team')}
@@ -328,18 +328,18 @@ export const WhoIsWorking: React.FC<WhoIsWorkingProps> = ({
                   : 'text-purple-800 hover:bg-purple-50'
               }`}
             >
-              ASP Contratistas
+              ASP Contractors
             </button>
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-700 shrink-0">Sede:</span>
+            <span className="text-xs font-bold text-slate-700 shrink-0">Site:</span>
             <select
               value={projectLocationFilter}
               onChange={(e) => setProjectLocationFilter(e.target.value)}
               className="bg-white border-2 border-slate-300 rounded-lg px-3 py-1 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
             >
-              <option value="all">Todas las Sedes ({projects.length})</option>
+              <option value="all">All Sites ({projects.length})</option>
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
@@ -354,7 +354,7 @@ export const WhoIsWorking: React.FC<WhoIsWorkingProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.length === 0 ? (
           <div className="col-span-full py-12 text-center text-sm font-medium text-slate-600 bg-white rounded-3xl border border-slate-200">
-            No hay colaboradores que coincidan con los filtros seleccionados.
+            No employees match the selected filters.
           </div>
         ) : (
           filtered.map((emp) => {
@@ -394,7 +394,7 @@ export const WhoIsWorking: React.FC<WhoIsWorkingProps> = ({
                                 : 'bg-purple-100 text-purple-900 border-purple-300'
                             }`}
                           >
-                            {emp.contractType || 'Internal Team'}
+                            {contractTypeLabel(emp.contractType)}
                           </span>
                         </div>
                       </div>
@@ -407,7 +407,7 @@ export const WhoIsWorking: React.FC<WhoIsWorkingProps> = ({
                           : 'bg-slate-100 text-slate-700 border-slate-300'
                       }`}
                     >
-                      {emp.status === 'clocked_in' ? 'En Turno' : 'Fuera'}
+                      {emp.status === 'clocked_in' ? 'On Shift' : 'Off'}
                     </span>
                   </div>
 
@@ -423,7 +423,7 @@ export const WhoIsWorking: React.FC<WhoIsWorkingProps> = ({
                         <div className="flex items-center justify-between text-slate-700">
                           <span className="flex items-center gap-1.5 font-medium">
                             <Clock className="w-3.5 h-3.5 text-slate-500" />
-                            Entrada: {formatTimeDisplay(activeShift.clockInTime)}
+                            Clock in: {formatTimeDisplay(activeShift.clockInTime)}
                           </span>
                           {elapsedInfo && (
                             <span className="font-mono font-bold text-blue-800 tabular-nums">
@@ -440,7 +440,7 @@ export const WhoIsWorking: React.FC<WhoIsWorkingProps> = ({
                       </>
                     ) : (
                       <div className="text-slate-500 text-xs py-2 font-medium">
-                        Sin turno activo el día de hoy.
+                        No active shift today.
                       </div>
                     )}
                   </div>
@@ -473,7 +473,7 @@ export const WhoIsWorking: React.FC<WhoIsWorkingProps> = ({
                     onClick={() => onSelectEmployeeForPunch(emp)}
                     className="px-3.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-600 text-blue-800 hover:text-white border border-blue-200 text-xs font-bold transition-colors cursor-pointer"
                   >
-                    Ver Marcador
+                    View Time Clock
                   </button>
                 </div>
               </div>
