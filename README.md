@@ -11,7 +11,9 @@ Stack: React + Vite + Tailwind, con **Supabase** (Postgres, Auth, Realtime) como
 1. En Supabase abre **SQL Editor → New query**, pega el contenido de
    [`supabase/migrations/20261014000000_init.sql`](supabase/migrations/20261014000000_init.sql) y pulsa **Run**.
 2. Ejecuta igual [`supabase/migrations/20261015000000_english_messages.sql`](supabase/migrations/20261015000000_english_messages.sql)
-   (pone en inglés los mensajes de error de la base de datos).
+   (pone en inglés los mensajes de error de la base de datos). Y después
+   [`supabase/migrations/20261016000000_open_site_access.sql`](supabase/migrations/20261016000000_open_site_access.sql)
+   (acceso por designación a sedes sin ubicación).
 3. Crea al primer administrador (con tu correo real) en otra consulta:
 
    ```sql

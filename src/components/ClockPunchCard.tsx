@@ -114,7 +114,7 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
     metres < 1000 ? `${metres} m` : `${(metres / 1000).toFixed(1)} km`;
 
   // Sites offered for clock-in: active ones whose geofence contains the worker (nearest first),
-  // plus active sites with no location, which have no geofence to check
+  // plus active sites with no location, but only for workers designated to use those
   const activeSites = projects.filter((p) => p.active !== false);
   const byDistance = (a: ProjectSite, b: ProjectSite) => (distanceTo(a) ?? 0) - (distanceTo(b) ?? 0);
   const nearbySites = activeSites
@@ -123,7 +123,8 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
       return d !== null && d <= (p.geofenceRadius || 150);
     })
     .sort(byDistance);
-  const openSites = activeSites.filter((p) => !hasGeofence(p));
+  const canUseOpenSites = activeEmployee.systemRole === 'admin' || activeEmployee.openSiteAccess === true;
+  const openSites = canUseOpenSites ? activeSites.filter((p) => !hasGeofence(p)) : [];
   const nearestSite = gpsLocation ? activeSites.filter(hasGeofence).sort(byDistance)[0] : undefined;
 
   // While on shift the site is the one the shift was started at

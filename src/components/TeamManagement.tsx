@@ -443,6 +443,15 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                       </span>
                     </div>
 
+                    {emp.openSiteAccess === true && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500 font-medium">Open sites:</span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-900 border border-blue-300">
+                          Allowed
+                        </span>
+                      </div>
+                    )}
+
                     {/* Password activation state */}
                     <div className="flex items-center justify-between">
                       <span className="text-slate-500 font-medium">Password:</span>
@@ -813,6 +822,22 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                     <option value="ASP Contratista">ASP Contractor</option>
                   </select>
                 </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200">
+                <input
+                  type="checkbox"
+                  id="openSiteAccessCheck"
+                  checked={editingEmployee.openSiteAccess === true}
+                  onChange={(e) => setEditingEmployee({ ...editingEmployee, openSiteAccess: e.target.checked })}
+                  className="w-4 h-4 mt-0.5 rounded accent-blue-600 cursor-pointer"
+                />
+                <label htmlFor="openSiteAccessCheck" className="text-xs text-slate-800 cursor-pointer">
+                  <strong className="text-slate-900 block font-bold">Can clock in at sites without a location</strong>
+                  <span className="text-xs text-slate-600 block mt-0.5 font-medium">
+                    Lets this person use sites that have no geofence, such as "Multiples Location", from anywhere. Administrators always can.
+                  </span>
+                </label>
               </div>
 
               <div>

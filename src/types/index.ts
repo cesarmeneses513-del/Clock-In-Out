@@ -25,6 +25,9 @@ export interface Employee {
   hourlyRate: number;
   invitationStatus?: 'active' | 'pending'; // 'pending' means invited by admin, needs to create password
   invitedAt?: string;
+  // May clock in at sites that have no location (e.g. "Multiples Location"). Admins always can.
+  // Undefined until the open_site_access column exists in the database.
+  openSiteAccess?: boolean;
 }
 
 export interface ProjectSite {

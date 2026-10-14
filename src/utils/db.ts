@@ -31,12 +31,15 @@ function toEmployee(r: Row): Employee {
     hourlyRate: Number(r.hourly_rate) || 0,
     invitationStatus: r.invitation_status,
     invitedAt: r.invited_at ?? undefined,
+    openSiteAccess: r.open_site_access ?? undefined,
   };
 }
 
 // user_id and invitation_status are owned by the database (see employees_guard trigger)
 function fromEmployee(e: Employee): Row {
   return {
+    // Left out while unknown so saves keep working before the column is added
+    ...(e.openSiteAccess !== undefined ? { open_site_access: e.openSiteAccess } : {}),
     id: e.id,
     name: e.name,
     role: e.role,
