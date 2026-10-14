@@ -356,6 +356,11 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     setEditingProjectId(null);
   };
 
+  // Sites always listed by code: CPR-000, CPR-001, CPR-002...
+  const sortedProjects = [...projects].sort((a, b) =>
+    a.code.localeCompare(b.code, undefined, { numeric: true, sensitivity: 'base' })
+  );
+
   const empQuery = empSearch.trim().toLowerCase();
   const visibleEmployees = (isAdminOrManager ? employees : employees.filter((e) => e.id === currentUser.id)).filter(
     (emp) =>
@@ -778,7 +783,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
-                  {projects.map((proj) => {
+                  {sortedProjects.map((proj) => {
                     const hasLocation = proj.latitude !== undefined && proj.longitude !== undefined;
                     return (
                       <tr key={proj.id} className="hover:bg-blue-50/40 transition-colors">
@@ -848,7 +853,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
       {activeSubTab === 'projects' && isAdminOrManager && empViewMode === 'grid' && (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {projects.map((proj) => (
+            {sortedProjects.map((proj) => (
               <div
                 key={proj.id}
                 className="bg-white border border-slate-200 rounded-2xl p-4 hover:border-blue-300 transition-all shadow-xs hover:shadow-md"
