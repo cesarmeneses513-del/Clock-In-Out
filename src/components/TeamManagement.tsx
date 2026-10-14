@@ -105,10 +105,12 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [geocodeStatus, setGeocodeStatus] = useState<{ text: string; isError?: boolean } | null>(null);
 
-  // Next sequential site code: 001, 002, 003...
+  // Next sequential site code: CPR-001, CPR-002... (first number not already in use)
   const nextSiteCode = () => {
-    const used = projects.map((p) => parseInt(p.code, 10)).filter((n) => !isNaN(n));
-    return String((used.length ? Math.max(...used) : 0) + 1).padStart(3, '0');
+    const used = new Set(projects.map((p) => p.code.trim().toUpperCase()));
+    let n = 1;
+    while (used.has(`CPR-${String(n).padStart(3, '0')}`)) n++;
+    return `CPR-${String(n).padStart(3, '0')}`;
   };
 
   const handleOpenAddProject = () => {
@@ -1008,7 +1010,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                   <label className="text-xs text-slate-900 font-bold block mb-1">Code</label>
                   <input
                     type="text"
-                    placeholder="e.g. 005"
+                    placeholder="e.g. CPR-005"
                     value={projCode}
                     onChange={(e) => setProjCode(e.target.value)}
                     className="w-full bg-white border-2 border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 font-mono focus:outline-none focus:border-blue-600"
