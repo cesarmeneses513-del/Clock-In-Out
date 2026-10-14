@@ -63,6 +63,12 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'employees' | 'projects'>('employees');
 
+  // Employee list search & filters (Admin / Manager)
+  const [empSearch, setEmpSearch] = useState('');
+  const [empRoleFilter, setEmpRoleFilter] = useState<'all' | 'admin' | 'manager' | 'employee'>('all');
+  const [empContractFilter, setEmpContractFilter] = useState<'all' | 'Internal Team' | 'ASP Contratista'>('all');
+  const [empAccessFilter, setEmpAccessFilter] = useState<'all' | 'active' | 'pending'>('all');
+
   const isAdminOrManager = currentUser.systemRole === 'admin' || currentUser.systemRole === 'manager';
   const isOnlyAdmin = currentUser.systemRole === 'admin';
 
@@ -317,6 +323,20 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     setEditingProjectId(null);
   };
 
+  const empQuery = empSearch.trim().toLowerCase();
+  const visibleEmployees = (isAdminOrManager ? employees : employees.filter((e) => e.id === currentUser.id)).filter(
+    (emp) =>
+      !isAdminOrManager ||
+      ((!empQuery ||
+        emp.name.toLowerCase().includes(empQuery) ||
+        (emp.email || '').toLowerCase().includes(empQuery) ||
+        emp.role.toLowerCase().includes(empQuery)) &&
+        (empRoleFilter === 'all' || emp.systemRole === empRoleFilter) &&
+        (empContractFilter === 'all' || emp.contractType === empContractFilter) &&
+        (empAccessFilter === 'all' ||
+          (empAccessFilter === 'active' ? emp.invitationStatus === 'active' : emp.invitationStatus !== 'active')))
+  );
+
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-20 md:pb-8">
       {/* Top Header & Subtabs */}
@@ -381,10 +401,64 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
         )}
       </div>
 
+      {/* Employee search & filters (Admin / Manager) */}
+      {activeSubTab === 'employees' && isAdminOrManager && (
+        <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-xs flex flex-col lg:flex-row gap-3 lg:items-center">
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search by name, email or position..."
+              value={empSearch}
+              onChange={(e) => setEmpSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 bg-slate-50 border-2 border-slate-200 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white transition-colors"
+            />
+          </div>
+          <div className="grid grid-cols-3 gap-2 lg:flex">
+            <select
+              value={empRoleFilter}
+              onChange={(e) => setEmpRoleFilter(e.target.value as typeof empRoleFilter)}
+              className="bg-white border-2 border-slate-300 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600 cursor-pointer"
+            >
+              <option value="all">All roles</option>
+              <option value="admin">Administrators</option>
+              <option value="manager">Managers</option>
+              <option value="employee">Employees</option>
+            </select>
+            <select
+              value={empContractFilter}
+              onChange={(e) => setEmpContractFilter(e.target.value as typeof empContractFilter)}
+              className="bg-white border-2 border-slate-300 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600 cursor-pointer"
+            >
+              <option value="all">All contracts</option>
+              <option value="Internal Team">Internal Team</option>
+              <option value="ASP Contratista">ASP Contractors</option>
+            </select>
+            <select
+              value={empAccessFilter}
+              onChange={(e) => setEmpAccessFilter(e.target.value as typeof empAccessFilter)}
+              className="bg-white border-2 border-slate-300 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600 cursor-pointer"
+            >
+              <option value="all">All accounts</option>
+              <option value="active">Signed up</option>
+              <option value="pending">Pending activation</option>
+            </select>
+          </div>
+        </div>
+      )}
+
       {/* Subtab 1: Employees List */}
       {activeSubTab === 'employees' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {(isAdminOrManager ? employees : employees.filter((e) => e.id === currentUser.id)).map((emp) => {
+          {visibleEmployees.length === 0 && (
+            <div className="col-span-full py-12 text-center text-sm font-medium text-slate-600 bg-white rounded-3xl border border-slate-200">
+              No employees match the search or filters.
+            </div>
+          )}
+          {visibleEmployees.map((emp) => {
+            // Invite links are only useful until the person has created their password
+            const showInvite = isAdminOrManager && emp.invitationStatus !== 'active';
+            const showEditDelete = isAdminOrManager && emp.id !== currentUser.id;
             const roleBadge =
               emp.systemRole === 'admin'
                 ? { label: 'Administrator', color: 'bg-emerald-100 text-emerald-900 border-emerald-300' }
@@ -469,9 +543,10 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                 </div>
 
                 {/* Card actions footer */}
+                {(showInvite || showEditDelete) && (
                 <div className="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5">
-                    {isAdminOrManager && (
+                    {showInvite && (
                       <button
                         onClick={() => handleShareExistingEmployeeInvite(emp)}
                         className="px-2.5 py-1 text-xs font-bold rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 flex items-center gap-1 transition-colors cursor-pointer"
@@ -483,7 +558,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                     )}
                   </div>
 
-                  {isAdminOrManager && emp.id !== currentUser.id && (
+                  {showEditDelete && (
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => setEditingEmployee(emp)}
@@ -506,6 +581,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                     </div>
                   )}
                 </div>
+                )}
               </div>
             );
           })}
