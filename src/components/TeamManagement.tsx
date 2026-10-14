@@ -100,6 +100,11 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
   const isAdminOrManager = currentUser.systemRole === 'admin' || currentUser.systemRole === 'manager';
   const isOnlyAdmin = currentUser.systemRole === 'admin';
 
+  // Same rules the database enforces: managers may only edit Employees, and only admins delete
+  const canEditEmployee = (emp: Employee) =>
+    isAdminOrManager && emp.id !== currentUser.id && (isOnlyAdmin || emp.systemRole === 'employee');
+  const canDeleteEmployee = (emp: Employee) => isOnlyAdmin && emp.id !== currentUser.id;
+
   // Add Employee Modal state
   const [showAddEmployee, setShowAddEmployee] = useState(false);
   const [empName, setEmpName] = useState('');
@@ -418,6 +423,27 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
               </button>
             )}
 
+            <div className="flex items-center gap-0.5 p-1 bg-slate-100 rounded-xl border border-slate-300 shrink-0">
+              <button
+                onClick={() => changeEmpViewMode('list')}
+                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                  empViewMode === 'list' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:text-slate-900'
+                }`}
+                title="List view"
+              >
+                <List className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => changeEmpViewMode('grid')}
+                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                  empViewMode === 'grid' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:text-slate-900'
+                }`}
+                title="Card view"
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </button>
+            </div>
+
             <button
               onClick={() => onResetData()}
               className="p-2 text-xs rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-300 transition-colors cursor-pointer shadow-2xs"
@@ -471,26 +497,6 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
               <option value="active">Signed up</option>
               <option value="pending">Pending activation</option>
             </select>
-            <div className="col-span-3 justify-self-end flex items-center gap-0.5 p-0.5 bg-slate-100 rounded-lg border border-slate-200 shrink-0 self-center">
-              <button
-                onClick={() => changeEmpViewMode('list')}
-                className={`p-1.5 rounded-md transition-colors cursor-pointer ${
-                  empViewMode === 'list' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:text-slate-900'
-                }`}
-                title="List view"
-              >
-                <List className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => changeEmpViewMode('grid')}
-                className={`p-1.5 rounded-md transition-colors cursor-pointer ${
-                  empViewMode === 'grid' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:text-slate-900'
-                }`}
-                title="Card view"
-              >
-                <LayoutGrid className="w-3.5 h-3.5" />
-              </button>
-            </div>
           </div>
         </div>
       )}
@@ -519,7 +525,6 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                   {visibleEmployees.map((emp) => {
                     const roleBadge = roleBadgeFor(emp);
                     const showInvite = emp.invitationStatus !== 'active';
-                    const showEditDelete = emp.id !== currentUser.id;
                     return (
                       <tr key={emp.id} className="hover:bg-blue-50/40 transition-colors">
                         <td className="py-2.5 px-4">
@@ -577,15 +582,17 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                                 <span>Invite / Link</span>
                               </button>
                             )}
-                            {showEditDelete && (
+                            {canEditEmployee(emp) && (
+                              <button
+                                onClick={() => setEditingEmployee(emp)}
+                                className="p-1.5 rounded-lg text-slate-600 hover:text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer"
+                                title="Edit employee"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            {canDeleteEmployee(emp) && (
                               <>
-                                <button
-                                  onClick={() => setEditingEmployee(emp)}
-                                  className="p-1.5 rounded-lg text-slate-600 hover:text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer"
-                                  title="Edit employee"
-                                >
-                                  <Edit3 className="w-3.5 h-3.5" />
-                                </button>
                                 <button
                                   onClick={() => {
                                     if (window.confirm(`Are you sure you want to delete ${emp.name}?`)) {
@@ -622,7 +629,8 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
           {visibleEmployees.map((emp) => {
             // Invite links are only useful until the person has created their password
             const showInvite = isAdminOrManager && emp.invitationStatus !== 'active';
-            const showEditDelete = isAdminOrManager && emp.id !== currentUser.id;
+            const showEdit = canEditEmployee(emp);
+            const showDelete = canDeleteEmployee(emp);
             const roleBadge = roleBadgeFor(emp);
 
             return (
@@ -702,7 +710,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                 </div>
 
                 {/* Card actions footer */}
-                {(showInvite || showEditDelete) && (
+                {(showInvite || showEdit || showDelete) && (
                 <div className="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5">
                     {showInvite && (
@@ -717,8 +725,9 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                     )}
                   </div>
 
-                  {showEditDelete && (
+                  {(showEdit || showDelete) && (
                     <div className="flex items-center gap-1">
+                      {showEdit && (
                       <button
                         onClick={() => setEditingEmployee(emp)}
                         className="p-1.5 rounded-lg text-slate-600 hover:text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer"
@@ -726,6 +735,8 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                       >
                         <Edit3 className="w-3.5 h-3.5" />
                       </button>
+                      )}
+                      {showDelete && (
                       <button
                         onClick={() => {
                           if (window.confirm(`Are you sure you want to delete ${emp.name}?`)) {
@@ -737,6 +748,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -747,8 +759,93 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
         </div>
       )}
 
-      {/* Subtab 2: Project Sites List */}
-      {activeSubTab === 'projects' && isAdminOrManager && (
+      {/* Subtab 2: Sites as a table */}
+      {activeSubTab === 'projects' && isAdminOrManager && empViewMode === 'list' && (
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+          {projects.length === 0 ? (
+            <div className="py-12 text-center text-sm font-medium text-slate-600">No sites yet.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-slate-800">
+                <thead className="bg-slate-100 text-xs uppercase tracking-wider text-slate-800 border-b border-slate-200 font-extrabold">
+                  <tr>
+                    <th className="py-3 px-4">Code</th>
+                    <th className="py-3 px-4">Site</th>
+                    <th className="py-3 px-4">Geofence</th>
+                    <th className="py-3 px-4">Auto Clock-Out</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {projects.map((proj) => {
+                    const hasLocation = proj.latitude !== undefined && proj.longitude !== undefined;
+                    return (
+                      <tr key={proj.id} className="hover:bg-blue-50/40 transition-colors">
+                        <td className="py-2.5 px-4 font-mono font-bold text-blue-800 whitespace-nowrap">{proj.code}</td>
+                        <td className="py-2.5 px-4">
+                          <div className="font-bold text-slate-900 whitespace-nowrap">{proj.name}</div>
+                          {proj.address && (
+                            <div className="text-slate-600 font-medium truncate max-w-[280px]">{proj.address}</div>
+                          )}
+                        </td>
+                        <td className="py-2.5 px-4 whitespace-nowrap">
+                          {hasLocation ? (
+                            <span className="font-mono font-bold text-slate-800">{proj.geofenceRadius || 150} m</span>
+                          ) : (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">
+                              No location
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2.5 px-4 font-semibold whitespace-nowrap">
+                          {hasLocation ? (proj.autoClockOut !== false ? 'On' : 'Off') : <span className="text-slate-400 font-normal">-</span>}
+                        </td>
+                        <td className="py-2.5 px-4 whitespace-nowrap">
+                          {proj.active !== false ? (
+                            <span className="text-[10px] text-emerald-900 font-bold px-2 py-0.5 rounded-full bg-emerald-100 border border-emerald-300">
+                              Active
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-slate-700 font-bold px-2 py-0.5 rounded-full bg-slate-100 border border-slate-300">
+                              Inactive
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2.5 px-4 whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => handleOpenEditProject(proj)}
+                              className="p-1.5 rounded-lg text-slate-600 hover:text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer"
+                              title="Edit site and geofence"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (window.confirm(`Delete the site ${proj.name}?`)) {
+                                  onDeleteProject(proj.id);
+                                }
+                              }}
+                              className="p-1.5 rounded-lg text-slate-500 hover:text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
+                              title="Delete site"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Subtab 2: Sites as cards */}
+      {activeSubTab === 'projects' && isAdminOrManager && empViewMode === 'grid' && (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {projects.map((proj) => (
@@ -882,8 +979,8 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                   className="w-full bg-white border-2 border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600 cursor-pointer"
                 >
                   <option value="employee">Employee (own time entries only)</option>
-                  <option value="manager">Manager (team and site supervision)</option>
-                  <option value="admin">Administrator (full system control)</option>
+                  {isOnlyAdmin && <option value="manager">Manager (team and site supervision)</option>}
+                  {isOnlyAdmin && <option value="admin">Administrator (full system control)</option>}
                 </select>
               </div>
 
@@ -1038,7 +1135,9 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                   <select
                     value={editingEmployee.systemRole || 'employee'}
                     onChange={(e) => setEditingEmployee({ ...editingEmployee, systemRole: e.target.value as any })}
-                    className="w-full bg-white border-2 border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600 cursor-pointer"
+                    disabled={!isOnlyAdmin}
+                    title={isOnlyAdmin ? undefined : 'Only an administrator can change roles'}
+                    className="w-full bg-white border-2 border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     <option value="employee">Employee</option>
                     <option value="manager">Manager</option>
