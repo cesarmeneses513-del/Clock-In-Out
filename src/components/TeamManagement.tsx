@@ -21,6 +21,8 @@ import {
   Search,
   Compass,
   Shield,
+  LayoutGrid,
+  List,
 } from 'lucide-react';
 import { Employee, ProjectSite, contractTypeLabel } from '../types';
 import { SiteMapPicker } from './SiteMapPicker';
@@ -49,6 +51,15 @@ const AVATAR_COLORS = [
 
 const RADIUS_PRESETS = [50, 100, 150, 300, 500, 1000];
 
+const EMP_VIEW_MODE_KEY = 'cpr_clock_employees_view_v1';
+
+const roleBadgeFor = (emp: Employee) =>
+  emp.systemRole === 'admin'
+    ? { label: 'Administrator', color: 'bg-emerald-100 text-emerald-900 border-emerald-300' }
+    : emp.systemRole === 'manager'
+    ? { label: 'Manager', color: 'bg-blue-100 text-blue-900 border-blue-300' }
+    : { label: 'Employee', color: 'bg-slate-100 text-slate-800 border-slate-300' };
+
 export const TeamManagement: React.FC<TeamManagementProps> = ({
   currentUser,
   employees,
@@ -68,6 +79,23 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
   const [empRoleFilter, setEmpRoleFilter] = useState<'all' | 'admin' | 'manager' | 'employee'>('all');
   const [empContractFilter, setEmpContractFilter] = useState<'all' | 'Internal Team' | 'ASP Contratista'>('all');
   const [empAccessFilter, setEmpAccessFilter] = useState<'all' | 'active' | 'pending'>('all');
+
+  // Employee list layout, remembered on this device
+  const [empViewMode, setEmpViewMode] = useState<'list' | 'grid'>(() => {
+    try {
+      return localStorage.getItem(EMP_VIEW_MODE_KEY) === 'grid' ? 'grid' : 'list';
+    } catch {
+      return 'list';
+    }
+  });
+  const changeEmpViewMode = (mode: 'list' | 'grid') => {
+    setEmpViewMode(mode);
+    try {
+      localStorage.setItem(EMP_VIEW_MODE_KEY, mode);
+    } catch {
+      // Storage blocked (private mode): the choice just is not remembered
+    }
+  };
 
   const isAdminOrManager = currentUser.systemRole === 'admin' || currentUser.systemRole === 'manager';
   const isOnlyAdmin = currentUser.systemRole === 'admin';
@@ -443,12 +471,148 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
               <option value="active">Signed up</option>
               <option value="pending">Pending activation</option>
             </select>
+            <div className="col-span-3 justify-self-end flex items-center gap-0.5 p-0.5 bg-slate-100 rounded-lg border border-slate-200 shrink-0 self-center">
+              <button
+                onClick={() => changeEmpViewMode('list')}
+                className={`p-1.5 rounded-md transition-colors cursor-pointer ${
+                  empViewMode === 'list' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:text-slate-900'
+                }`}
+                title="List view"
+              >
+                <List className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => changeEmpViewMode('grid')}
+                className={`p-1.5 rounded-md transition-colors cursor-pointer ${
+                  empViewMode === 'grid' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:text-slate-900'
+                }`}
+                title="Card view"
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Subtab 1: Employees List */}
-      {activeSubTab === 'employees' && (
+      {/* Subtab 1: Employees as a table (Admin / Manager) */}
+      {activeSubTab === 'employees' && isAdminOrManager && empViewMode === 'list' && (
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+          {visibleEmployees.length === 0 ? (
+            <div className="py-12 text-center text-sm font-medium text-slate-600">
+              No employees match the search or filters.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-slate-800">
+                <thead className="bg-slate-100 text-xs uppercase tracking-wider text-slate-800 border-b border-slate-200 font-extrabold">
+                  <tr>
+                    <th className="py-3 px-4">Employee</th>
+                    <th className="py-3 px-4">Role</th>
+                    <th className="py-3 px-4">Contract</th>
+                    <th className="py-3 px-4">Email</th>
+                    <th className="py-3 px-4">Password</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {visibleEmployees.map((emp) => {
+                    const roleBadge = roleBadgeFor(emp);
+                    const showInvite = emp.invitationStatus !== 'active';
+                    const showEditDelete = emp.id !== currentUser.id;
+                    return (
+                      <tr key={emp.id} className="hover:bg-blue-50/40 transition-colors">
+                        <td className="py-2.5 px-4">
+                          <div className="flex items-center gap-2.5">
+                            <div
+                              className={`w-8 h-8 rounded-lg ${emp.avatarBg} flex items-center justify-center text-xs font-black text-white shrink-0`}
+                            >
+                              {emp.name.charAt(0)}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="font-bold text-slate-900 whitespace-nowrap">{emp.name}</div>
+                              <div className="text-slate-600 font-medium whitespace-nowrap">{emp.role}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-2.5 px-4 whitespace-nowrap">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${roleBadge.color}`}>
+                            {roleBadge.label}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-4 whitespace-nowrap">
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                              emp.contractType === 'Internal Team'
+                                ? 'bg-blue-100 text-blue-900 border-blue-300'
+                                : 'bg-purple-100 text-purple-900 border-purple-300'
+                            }`}
+                          >
+                            {contractTypeLabel(emp.contractType)}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-4 font-mono font-semibold text-slate-800 whitespace-nowrap">
+                          {emp.email || 'No email'}
+                        </td>
+                        <td className="py-2.5 px-4 whitespace-nowrap">
+                          {emp.invitationStatus === 'pending' ? (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">
+                              Pending activation
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-300">
+                              Set
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2.5 px-4 whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1">
+                            {showInvite && (
+                              <button
+                                onClick={() => handleShareExistingEmployeeInvite(emp)}
+                                className="px-2.5 py-1 text-xs font-bold rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 flex items-center gap-1 transition-colors cursor-pointer"
+                                title="Share invitation / password link"
+                              >
+                                <Share2 className="w-3.5 h-3.5" />
+                                <span>Invite / Link</span>
+                              </button>
+                            )}
+                            {showEditDelete && (
+                              <>
+                                <button
+                                  onClick={() => setEditingEmployee(emp)}
+                                  className="p-1.5 rounded-lg text-slate-600 hover:text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer"
+                                  title="Edit employee"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (window.confirm(`Are you sure you want to delete ${emp.name}?`)) {
+                                      onDeleteEmployee(emp.id);
+                                    }
+                                  }}
+                                  className="p-1.5 rounded-lg text-slate-500 hover:text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
+                                  title="Delete employee"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Subtab 1: Employees as cards (always for a worker's own profile) */}
+      {activeSubTab === 'employees' && (!isAdminOrManager || empViewMode === 'grid') && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {visibleEmployees.length === 0 && (
             <div className="col-span-full py-12 text-center text-sm font-medium text-slate-600 bg-white rounded-3xl border border-slate-200">
@@ -459,12 +623,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
             // Invite links are only useful until the person has created their password
             const showInvite = isAdminOrManager && emp.invitationStatus !== 'active';
             const showEditDelete = isAdminOrManager && emp.id !== currentUser.id;
-            const roleBadge =
-              emp.systemRole === 'admin'
-                ? { label: 'Administrator', color: 'bg-emerald-100 text-emerald-900 border-emerald-300' }
-                : emp.systemRole === 'manager'
-                ? { label: 'Manager', color: 'bg-blue-100 text-blue-900 border-blue-300' }
-                : { label: 'Employee', color: 'bg-slate-100 text-slate-800 border-slate-300' };
+            const roleBadge = roleBadgeFor(emp);
 
             return (
               <div
