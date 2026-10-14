@@ -45,17 +45,22 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
 
   const [reviewOnly, setReviewOnly] = useState(false);
 
-  // Entry whose clock-out an admin is correcting, and the HH:MM typed for it
+  // Entry whose times an admin is correcting, and the HH:MM typed for each
   const [reviewEntry, setReviewEntry] = useState<TimeEntry | null>(null);
+  const [reviewInTime, setReviewInTime] = useState('');
   const [reviewOutTime, setReviewOutTime] = useState('');
   const [reviewError, setReviewError] = useState<string | null>(null);
 
   const isAdminOrManager = currentUser.systemRole === 'admin' || currentUser.systemRole === 'manager';
 
   const openReview = (entry: TimeEntry) => {
-    const out = new Date(entry.clockOutTime || entry.clockInTime);
     const pad = (n: number) => n.toString().padStart(2, '0');
-    setReviewOutTime(`${pad(out.getHours())}:${pad(out.getMinutes())}`);
+    const toHHMM = (iso: string) => {
+      const d = new Date(iso);
+      return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    };
+    setReviewInTime(toHHMM(entry.clockInTime));
+    setReviewOutTime(toHHMM(entry.clockOutTime || entry.clockInTime));
     setReviewError(null);
     setReviewEntry(entry);
   };
@@ -63,22 +68,29 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
   const saveReview = (e: React.FormEvent) => {
     e.preventDefault();
     if (!reviewEntry) return;
-    const [hours, minutes] = reviewOutTime.split(':').map(Number);
-    // Same calendar day as the clock-in, at the corrected time
-    const out = new Date(reviewEntry.clockInTime);
-    out.setHours(hours, minutes, 0, 0);
-    if (isNaN(out.getTime()) || out.getTime() <= new Date(reviewEntry.clockInTime).getTime()) {
+    // Both times stay on the shift's original calendar day
+    const atTime = (hhmm: string) => {
+      const [hours, minutes] = hhmm.split(':').map(Number);
+      const d = new Date(reviewEntry.clockInTime);
+      d.setHours(hours, minutes, 0, 0);
+      return d;
+    };
+    const clockIn = atTime(reviewInTime);
+    const clockOut = atTime(reviewOutTime);
+    if (isNaN(clockIn.getTime()) || isNaN(clockOut.getTime()) || clockOut.getTime() <= clockIn.getTime()) {
       setReviewError('Clock-out time must be after clock-in time');
       return;
     }
-    const outIso = out.toISOString();
+    const inIso = clockIn.toISOString();
+    const outIso = clockOut.toISOString();
     const { totalDecimalHours, totalBreakMinutes } = calculateElapsedHours(
-      reviewEntry.clockInTime,
+      inIso,
       outIso,
       reviewEntry.breakPeriods
     );
     onUpdateEntry({
       ...reviewEntry,
+      clockInTime: inIso,
       clockOutTime: outIso,
       totalHours: totalDecimalHours,
       totalBreakMinutes,
@@ -515,7 +527,7 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
                                   ? 'text-amber-700 hover:text-amber-900 hover:bg-amber-50'
                                   : 'text-slate-500 hover:text-blue-700 hover:bg-blue-50'
                               }`}
-                              title="Review / correct clock-out time"
+                              title="Review / correct shift times"
                             >
                               <ClipboardCheck className="w-4 h-4" />
                             </button>
@@ -555,7 +567,7 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
           >
             <div className="flex items-start justify-between pb-3 border-b border-slate-200">
               <div>
-                <h2 className="text-base font-black text-slate-900">Review Clock-Out</h2>
+                <h2 className="text-base font-black text-slate-900">Review Shift Times</h2>
                 <p className="text-xs text-slate-600 font-medium mt-0.5">
                   {reviewEntry.employeeName} · {reviewEntry.date}
                 </p>
@@ -581,20 +593,36 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
                 <span className="font-bold text-slate-900 truncate max-w-[180px]">{reviewEntry.projectName}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-600 font-medium">Clock in:</span>
-                <span className="font-mono font-bold text-emerald-800">{formatTimeDisplay(reviewEntry.clockInTime)}</span>
+                <span className="text-slate-600 font-medium">Recorded:</span>
+                <span className="font-mono font-bold text-slate-800">
+                  {formatTimeDisplay(reviewEntry.clockInTime)} – {formatTimeDisplay(reviewEntry.clockOutTime)}
+                </span>
               </div>
             </div>
 
             <div>
-              <label className="text-xs font-bold text-slate-900 block mb-1">Clock-Out Time</label>
-              <input
-                type="time"
-                required
-                value={reviewOutTime}
-                onChange={(e) => setReviewOutTime(e.target.value)}
-                className="w-full bg-white border-2 border-slate-300 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-blue-600 font-mono"
-              />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-900 block mb-1">Clock-In Time</label>
+                  <input
+                    type="time"
+                    required
+                    value={reviewInTime}
+                    onChange={(e) => setReviewInTime(e.target.value)}
+                    className="w-full bg-white border-2 border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-blue-600 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-900 block mb-1">Clock-Out Time</label>
+                  <input
+                    type="time"
+                    required
+                    value={reviewOutTime}
+                    onChange={(e) => setReviewOutTime(e.target.value)}
+                    className="w-full bg-white border-2 border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-blue-600 font-mono"
+                  />
+                </div>
+              </div>
               <p className="text-xs text-slate-600 mt-1 font-medium">
                 Saving recalculates the hours and marks the entry as reviewed.
               </p>
