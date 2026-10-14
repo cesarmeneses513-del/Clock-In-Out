@@ -228,39 +228,13 @@ export const LoginScreen: React.FC = () => {
       <div className="w-full max-w-md relative z-10 space-y-6">
         {/* Brand Header with CPR Facade Upgrade Specialists Corporate Logo */}
         <div className="text-center space-y-3">
-          {/* Logo badge matching user screenshot style */}
-          <div className="inline-flex items-center gap-3 bg-white px-5 py-3 rounded-2xl shadow-lg shadow-blue-900/5 border border-slate-200/80">
-            {/* CPR Facade Logo Geometric mark */}
-            <div className="flex items-center">
-              <svg viewBox="0 0 140 70" className="h-9 w-auto" fill="none">
-                <path d="M12 36 L40 10 L56 22 L32 44 L54 62 L38 70 Z" fill="#0284c7" />
-                <path d="M40 10 L68 32 L52 44 L38 32 Z" fill="#0369a1" />
-                <path d="M54 62 L68 32 L56 22 L45 33 Z" fill="#0284c7" opacity="0.85" />
-                <text
-                  x="18"
-                  y="43"
-                  fill="white"
-                  fontSize="15"
-                  fontWeight="900"
-                  fontFamily="system-ui, sans-serif"
-                  letterSpacing="-0.5"
-                >
-                  CPR
-                </text>
-              </svg>
-            </div>
-            {/* Corporate typography */}
-            <div className="text-left leading-none border-l-2 border-slate-200 pl-3">
-              <div className="text-[12px] font-black tracking-wider text-[#0f2d59] font-sans">
-                FACADE
-              </div>
-              <div className="text-[12px] font-black tracking-wider text-[#0f2d59] font-sans mt-0.5">
-                UPGRADE
-              </div>
-              <div className="text-[10px] font-black tracking-wider text-[#0284c7] font-sans mt-0.5">
-                SPECIALISTS
-              </div>
-            </div>
+          {/* CPR Facade Upgrade Specialists logo */}
+          <div className="inline-flex items-center bg-white px-5 py-3 rounded-2xl shadow-lg shadow-blue-900/5 border border-slate-200/80">
+            <img
+              src="/cpr-logo.jpg"
+              alt="CPR Facade Upgrade Specialists"
+              className="h-14 sm:h-16 w-auto"
+            />
           </div>
 
           <div>
