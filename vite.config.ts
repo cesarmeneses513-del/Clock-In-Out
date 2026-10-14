@@ -1,11 +1,28 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import {defineConfig} from 'vite';
+import {defineConfig, type Plugin} from 'vite';
+
+// Identifies this build; the running app compares it with /version.json to offer a refresh
+const appVersion = process.env.VERCEL_GIT_COMMIT_SHA || Date.now().toString();
+
+const versionFile = (): Plugin => ({
+  name: 'version-file',
+  generateBundle() {
+    this.emitFile({
+      type: 'asset',
+      fileName: 'version.json',
+      source: JSON.stringify({version: appVersion}),
+    });
+  },
+});
 
 export default defineConfig(() => {
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [react(), tailwindcss(), versionFile()],
+    define: {
+      __APP_VERSION__: JSON.stringify(appVersion),
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

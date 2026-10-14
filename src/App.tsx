@@ -575,8 +575,8 @@ export default function App() {
 
       {/* Geofence Exit Auto Clock-Out Dialog */}
       {geofenceAlertModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in">
-          <div className="w-full max-w-md bg-slate-900 border border-rose-500/40 rounded-3xl p-6 shadow-2xl space-y-4 relative overflow-hidden">
+        <div className="fixed inset-0 z-50 flex overflow-y-auto p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in">
+          <div className="m-auto w-full max-w-md bg-slate-900 border border-rose-500/40 rounded-3xl p-6 shadow-2xl space-y-4 relative overflow-hidden">
             <div className="absolute -top-16 -right-16 w-36 h-36 bg-rose-500/10 rounded-full blur-2xl pointer-events-none" />
 
             <div className="flex items-start gap-3.5">

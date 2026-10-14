@@ -105,10 +105,16 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [geocodeStatus, setGeocodeStatus] = useState<{ text: string; isError?: boolean } | null>(null);
 
+  // Next sequential site code: 001, 002, 003...
+  const nextSiteCode = () => {
+    const used = projects.map((p) => parseInt(p.code, 10)).filter((n) => !isNaN(n));
+    return String((used.length ? Math.max(...used) : 0) + 1).padStart(3, '0');
+  };
+
   const handleOpenAddProject = () => {
     setEditingProjectId(null);
     setProjName('');
-    setProjCode(`CPR-${Math.floor(100 + Math.random() * 900)}`);
+    setProjCode(nextSiteCode());
     setProjAddress('');
     setProjClient('CPR Construction');
     setProjLatitude('-33.8688');
@@ -277,7 +283,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     } else {
       onAddProject({
         name: projName.trim(),
-        code: projCode.trim() || `CPR-${Math.floor(100 + Math.random() * 900)}`,
+        code: projCode.trim() || nextSiteCode(),
         address: projAddress.trim() || 'On-site address',
         client: projClient.trim(),
         active: true,
@@ -543,8 +549,8 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
 
       {/* Invite Employee Modal (Admin / Manager only) */}
       {showAddEmployee && isAdminOrManager && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-          <div className="w-full max-w-lg bg-white border border-slate-200 rounded-3xl p-6 sm:p-7 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 flex overflow-y-auto p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <div className="m-auto w-full max-w-lg bg-white border border-slate-200 rounded-3xl p-6 sm:p-7 shadow-2xl space-y-4">
             <div className="flex items-start justify-between pb-3 border-b border-slate-200">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-blue-100 border border-blue-200 flex items-center justify-center text-blue-700">
@@ -717,8 +723,8 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
 
       {/* Edit Employee Modal */}
       {editingEmployee && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-          <div className="w-full max-w-lg bg-white border border-slate-200 rounded-3xl p-6 sm:p-7 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 flex overflow-y-auto p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <div className="m-auto w-full max-w-lg bg-white border border-slate-200 rounded-3xl p-6 sm:p-7 shadow-2xl space-y-4">
             <div className="flex items-start justify-between pb-3 border-b border-slate-200">
               <h2 className="text-base font-black text-slate-900">Edit Employee</h2>
               <button
@@ -832,8 +838,8 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
 
       {/* Invitation Success / Share Dialog */}
       {inviteModalData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-          <div className="w-full max-w-md bg-white border border-slate-200 rounded-3xl p-6 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 flex overflow-y-auto p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <div className="m-auto w-full max-w-md bg-white border border-slate-200 rounded-3xl p-6 shadow-2xl space-y-4">
             <div className="flex items-start justify-between pb-2 border-b border-slate-200">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-emerald-100 border border-emerald-300 flex items-center justify-center text-emerald-800 shrink-0">
@@ -955,8 +961,8 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
 
       {/* Add / Edit Project Modal with Geofence & Radius */}
       {showProjectModal && isAdminOrManager && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in overflow-y-auto">
-          <div className="w-full max-w-lg bg-white border border-slate-200 rounded-3xl p-6 shadow-2xl space-y-4 my-8">
+        <div className="fixed inset-0 z-50 flex overflow-y-auto p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <div className="m-auto w-full max-w-lg bg-white border border-slate-200 rounded-3xl p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-200">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-blue-100 border border-blue-200 flex items-center justify-center text-blue-700">
@@ -1002,7 +1008,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                   <label className="text-xs text-slate-900 font-bold block mb-1">Code</label>
                   <input
                     type="text"
-                    placeholder="e.g. CPR-005"
+                    placeholder="e.g. 005"
                     value={projCode}
                     onChange={(e) => setProjCode(e.target.value)}
                     className="w-full bg-white border-2 border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 font-mono focus:outline-none focus:border-blue-600"
@@ -1164,7 +1170,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                           onChange={(e) => setProjRadius(Math.max(10, parseInt(e.target.value) || 10))}
                           className="w-full bg-white border-2 border-slate-300 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-900 font-mono focus:outline-none focus:border-blue-600"
                         />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-600 font-mono font-bold">
+                        <span className="absolute right-9 top-1/2 -translate-y-1/2 text-xs text-slate-600 font-mono font-bold">
                           metres
                         </span>
                       </div>
