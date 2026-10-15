@@ -41,6 +41,9 @@ export interface ProjectSite {
   longitude?: number;
   geofenceRadius?: number; // In meters (e.g. 100m, 150m)
   autoClockOut?: boolean; // Automatically clock out when worker exits perimeter
+  // IANA time zone of the site; forgotten shifts are closed at 5 pm local time there.
+  // Undefined until the timezone column exists in the database.
+  timezone?: string;
 }
 
 export interface BreakPeriod {

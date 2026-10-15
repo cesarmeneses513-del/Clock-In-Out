@@ -67,6 +67,7 @@ function toProject(r: Row): ProjectSite {
     longitude: r.longitude ?? undefined,
     geofenceRadius: r.geofence_radius ?? 150,
     autoClockOut: r.auto_clock_out ?? true,
+    timezone: r.timezone ?? undefined,
   };
 }
 
@@ -82,6 +83,8 @@ function fromProject(p: ProjectSite): Row {
     longitude: p.longitude ?? null,
     geofence_radius: p.geofenceRadius ?? 150,
     auto_clock_out: p.autoClockOut ?? true,
+    // Left out while unknown so saves keep working before the column is added
+    ...(p.timezone !== undefined ? { timezone: p.timezone } : {}),
   };
 }
 

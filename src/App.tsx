@@ -16,7 +16,8 @@ import { supabase, isSupabaseConfigured } from './utils/supabase';
 import * as db from './utils/db';
 import { getDistanceMeters, watchLocation } from './utils/geo';
 import { sound } from './utils/audio';
-import { AlertTriangle, X } from 'lucide-react';
+import { AlertTriangle, RefreshCw, X } from 'lucide-react';
+import { usePullToRefresh } from './utils/pullToRefresh';
 import { Navbar } from './components/Navbar';
 import { ClockPunchCard } from './components/ClockPunchCard';
 import { WhoIsWorking } from './components/WhoIsWorking';
@@ -99,6 +100,9 @@ export default function App() {
       setDataLoaded(true);
     }
   }, []);
+
+  // Pull down to refresh: reloads the data (the time clock also re-checks the location)
+  const { pull, refreshing } = usePullToRefresh(() => (userId ? reload() : undefined));
 
   // Merge one realtime change into local state
   const applyChange = useCallback((change: db.RowChange) => {
@@ -538,6 +542,19 @@ export default function App() {
       />
 
       {/* Main App Content Viewport */}
+        {(pull > 0 || refreshing) && (
+          <div
+            className="fixed top-16 inset-x-0 z-40 flex justify-center pointer-events-none"
+            style={{ transform: `translateY(${pull - 24}px)`, opacity: Math.min(1, pull / 50) }}
+          >
+            <div className="w-9 h-9 rounded-full bg-white shadow-md border border-slate-200 flex items-center justify-center">
+              <RefreshCw
+                className={`w-4 h-4 text-blue-600 ${refreshing ? 'animate-spin' : ''}`}
+                style={refreshing ? undefined : { transform: `rotate(${pull * 3}deg)` }}
+              />
+            </div>
+          </div>
+        )}
         {syncError && (
           <div className="mx-4 mt-4 p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2">
             <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />

@@ -51,6 +51,17 @@ const AVATAR_COLORS = [
 
 const RADIUS_PRESETS = [50, 100, 150, 300, 500, 1000];
 
+// Site time zones; forgotten shifts are closed at 5 pm local time of the site
+const SITE_TIMEZONES = [
+  { value: 'Australia/Sydney', label: 'Sydney (NSW / ACT)' },
+  { value: 'Australia/Brisbane', label: 'Brisbane (QLD)' },
+  { value: 'Australia/Melbourne', label: 'Melbourne (VIC)' },
+  { value: 'Australia/Adelaide', label: 'Adelaide (SA)' },
+  { value: 'Australia/Hobart', label: 'Hobart (TAS)' },
+  { value: 'Australia/Darwin', label: 'Darwin (NT)' },
+  { value: 'Australia/Perth', label: 'Perth (WA)' },
+];
+
 const EMP_VIEW_MODE_KEY = 'cpr_clock_employees_view_v1';
 
 const roleBadgeFor = (emp: Employee) =>
@@ -141,6 +152,8 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
   const [projRadius, setProjRadius] = useState<number>(150);
   const [projAutoClockOut, setProjAutoClockOut] = useState<boolean>(true);
   const [projActive, setProjActive] = useState<boolean>(true);
+  // Undefined until the timezone column exists in the database (the field stays hidden until then)
+  const [projTimezone, setProjTimezone] = useState<string | undefined>(undefined);
   const [isCapturingGps, setIsCapturingGps] = useState(false);
   const [gpsCaptureStatus, setGpsCaptureStatus] = useState<string | null>(null);
   const [isGeocoding, setIsGeocoding] = useState(false);
@@ -165,6 +178,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     setProjRadius(150);
     setProjAutoClockOut(true);
     setProjActive(true);
+    setProjTimezone(projects.some((p) => p.timezone !== undefined) ? 'Australia/Sydney' : undefined);
     setGpsCaptureStatus(null);
     setGeocodeStatus(null);
     setShowProjectModal(true);
@@ -181,6 +195,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
     setProjRadius(proj.geofenceRadius || 150);
     setProjAutoClockOut(proj.autoClockOut !== false);
     setProjActive(proj.active !== false);
+    setProjTimezone(proj.timezone);
     setGpsCaptureStatus(null);
     setGeocodeStatus(null);
     setShowProjectModal(true);
@@ -329,9 +344,10 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
           ...existing,
           name: projName.trim(),
           code: projCode.trim() || existing.code,
-          address: projAddress.trim() || 'On-site address',
+          address: projAddress.trim(),
           client: projClient.trim(),
           active: projActive,
+          timezone: projTimezone ?? existing.timezone,
           latitude: lat,
           longitude: lon,
           geofenceRadius: projRadius,
@@ -342,9 +358,10 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
       onAddProject({
         name: projName.trim(),
         code: projCode.trim() || nextSiteCode(),
-        address: projAddress.trim() || 'On-site address',
+        address: projAddress.trim(),
         client: projClient.trim(),
         active: projActive,
+        ...(projTimezone !== undefined ? { timezone: projTimezone } : {}),
         latitude: lat,
         longitude: lon,
         geofenceRadius: projRadius,
@@ -1601,6 +1618,26 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                     <span>·</span>
                     <span>Automatic clock-out: <strong className={projAutoClockOut ? 'text-emerald-800' : 'text-slate-600'}>{projAutoClockOut ? 'On' : 'Off'}</strong></span>
                   </div>
+                </div>
+              )}
+
+              {projTimezone !== undefined && (
+                <div>
+                  <label className="text-xs font-bold text-slate-900 block mb-1">Site Time Zone</label>
+                  <select
+                    value={projTimezone}
+                    onChange={(e) => setProjTimezone(e.target.value)}
+                    className="w-full bg-white border-2 border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600 cursor-pointer"
+                  >
+                    {SITE_TIMEZONES.map((tz) => (
+                      <option key={tz.value} value={tz.value}>
+                        {tz.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-slate-600 mt-1 font-medium">
+                    Shifts nobody clocks out of are closed at 5 pm in this time zone.
+                  </p>
                 </div>
               )}
 

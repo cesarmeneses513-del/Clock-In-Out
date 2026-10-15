@@ -15,7 +15,9 @@ Stack: React + Vite + Tailwind, con **Supabase** (Postgres, Auth, Realtime) como
    [`supabase/migrations/20261016000000_open_site_access.sql`](supabase/migrations/20261016000000_open_site_access.sql)
    (acceso por designación a sedes sin ubicación). Y por último
    [`supabase/migrations/20261017000000_auto_close_shifts.sql`](supabase/migrations/20261017000000_auto_close_shifts.sql)
-   (cierra a las 4:30 pm, hora de Sídney, los turnos sin salida y los marca para revisión).
+   (cierre automático de turnos sin salida) y
+   [`supabase/migrations/20261018000000_site_timezone_5pm.sql`](supabase/migrations/20261018000000_site_timezone_5pm.sql)
+   (lo pasa a las 5 pm, hora local de cada sede, y los marca para revisión).
 3. Crea al primer administrador (con tu correo real) en otra consulta:
 
    ```sql

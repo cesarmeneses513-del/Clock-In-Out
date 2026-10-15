@@ -5,6 +5,12 @@
   --font-mono: 'JetBrains Mono', monospace;
 }
 
+/* The app has its own pull-to-refresh; stop the browser's bounce / reload gesture from doubling it */
+html,
+body {
+  overscroll-behavior-y: none;
+}
+
 /* Base Body Styles - Pristine White with Blue Corporate Canvas */
 body {
   font-family: var(--font-sans);

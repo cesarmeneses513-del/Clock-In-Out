@@ -6,11 +6,13 @@ import {
   CheckCircle2,
   FileText,
   AlertTriangle,
-  RefreshCw,
+  MapPin,
+  X,
 } from 'lucide-react';
 import { Employee, ProjectSite, TimeEntry, LocationStamp, contractTypeLabel } from '../types';
 import { calculateElapsedHours, formatTimeDisplay, formatDateDisplay } from '../utils/storage';
 import { sound } from '../utils/audio';
+import { PULL_REFRESH_EVENT } from '../utils/pullToRefresh';
 import { captureCurrentLocation, getDistanceMeters, LocationFailure } from '../utils/geo';
 
 interface ClockPunchCardProps {
@@ -71,8 +73,10 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
     return () => clearInterval(timer);
   }, [activeShift]);
 
+  const [showLocationHelp, setShowLocationHelp] = useState(false);
+
   // Silently auto-fetch and synchronize GPS location whenever the app opens or window gains focus
-  const handleRefreshLocation = async () => {
+  const handleRefreshLocation = async (): Promise<LocationFailure | null> => {
     setGpsLoading(true);
     try {
       const { location, failure } = await captureCurrentLocation();
@@ -80,13 +84,26 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
         setGpsLocation(location);
       }
       setGpsFailure(failure || null);
+      return failure || null;
     } catch {
       // Background silent capture
+      return null;
     } finally {
       setGpsLoading(false);
       setGpsChecked(true);
     }
   };
+
+  // "Enable location": asking again shows the browser prompt when it still can; otherwise explain the settings.
+  // A web page cannot open the phone's Settings app itself.
+  const handleEnableLocation = async () => {
+    const failure = await handleRefreshLocation();
+    if (failure) setShowLocationHelp(true);
+  };
+  const isAppleDevice =
+    typeof navigator !== 'undefined' &&
+    (/iPhone|iPad|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
 
   useEffect(() => {
     handleRefreshLocation();
@@ -99,10 +116,12 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
 
     window.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleRefreshLocation);
+    window.addEventListener(PULL_REFRESH_EVENT, handleRefreshLocation);
 
     return () => {
       window.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleRefreshLocation);
+      window.removeEventListener(PULL_REFRESH_EVENT, handleRefreshLocation);
     };
   }, []);
 
@@ -148,15 +167,13 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
     : !gpsLocation
     ? !gpsChecked || gpsLoading
       ? 'Finding your location...'
-      : gpsFailure === 'denied'
-      ? 'Location access is blocked for this website. On iPhone: Settings > Privacy & Security > Location Services > Safari Websites > While Using the App. Then tap Try again and choose Allow.'
       : gpsFailure === 'unsupported'
       ? 'This browser cannot share your location. Open the app in Safari or Chrome.'
-      : 'Could not get your location. Check that Location Services are on, then tap Try again.'
+      : 'Location is off for this app, so the sites near you cannot be shown.'
     : nearbySites.length === 0
     ? nearestSite
-      ? `You are not inside any site area. Nearest: ${nearestSite.name} (${formatDistance(distanceTo(nearestSite) ?? 0)} away).`
-      : 'You are not inside any site area.'
+      ? `You are not inside any site area. Nearest: ${nearestSite.name} (${formatDistance(distanceTo(nearestSite) ?? 0)} away). Pull down to check again.`
+      : 'You are not inside any site area. Pull down to check again.'
     : null;
 
   // Geofence Radius calculations (active in background)
@@ -381,12 +398,6 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
           )}
         </div>
 
-        {isClockedIn && isOwnCard && (
-          <p className="-mt-2 pb-4 text-center text-[11px] font-medium text-slate-600">
-            Remember to clock out. Shifts still open at 4:30 pm are closed automatically.
-          </p>
-        )}
-
         {/* 2. Site location: shows the address only */}
         <div className="pt-4 border-t border-slate-200">
           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
@@ -426,15 +437,15 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
               <p className="text-xs font-semibold text-amber-800 pl-0.5">{siteNotice}</p>
             )}
 
-            {isOwnCard && !isClockedIn && gpsChecked && (!gpsLocation || nearbySites.length === 0) && (
+            {isOwnCard && !isClockedIn && gpsChecked && !gpsLocation && gpsFailure !== 'unsupported' && (
               <button
                 type="button"
-                onClick={handleRefreshLocation}
+                onClick={handleEnableLocation}
                 disabled={gpsLoading}
-                className="px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-blue-700 hover:text-blue-900 text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-2xs"
+                className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shadow-md shadow-blue-600/30"
               >
-                <RefreshCw className={`w-3.5 h-3.5 ${gpsLoading ? 'animate-spin' : ''}`} />
-                <span>{gpsLoading ? 'Locating...' : 'Try again'}</span>
+                <MapPin className="w-4 h-4" />
+                <span>{gpsLoading ? 'Checking location...' : 'Enable location'}</span>
               </button>
             )}
           </div>
@@ -458,6 +469,66 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
           </div>
         </div>
       </div>
+
+      {/* How to turn location on (a web page cannot open Settings itself) */}
+      {showLocationHelp && (
+        <div className="fixed inset-0 z-50 flex overflow-y-auto p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <div className="m-auto w-full max-w-sm bg-white border border-slate-200 rounded-3xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-200">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-blue-100 border border-blue-200 flex items-center justify-center text-blue-700 shrink-0">
+                  <MapPin className="w-5 h-5" />
+                </div>
+                <h2 className="text-base font-black text-slate-900">Turn on location</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowLocationHelp(false)}
+                className="p-1 rounded-lg text-slate-500 hover:text-slate-900 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {isAppleDevice ? (
+              <ol className="list-decimal pl-5 space-y-2 text-xs text-slate-800 font-medium">
+                <li>
+                  Open <strong>Settings</strong> → <strong>Privacy &amp; Security</strong> →{' '}
+                  <strong>Location Services</strong> and make sure it is <strong>On</strong>.
+                </li>
+                <li>
+                  In the same screen open <strong>Safari Websites</strong> and choose{' '}
+                  <strong>While Using the App</strong> (keep <strong>Precise Location</strong> on).
+                </li>
+                <li>
+                  Back in Safari, tap <strong>aA</strong> in the address bar → <strong>Website Settings</strong> →{' '}
+                  <strong>Location</strong> → <strong>Allow</strong>.
+                </li>
+                <li>Return here and pull the screen down to refresh.</li>
+              </ol>
+            ) : (
+              <ol className="list-decimal pl-5 space-y-2 text-xs text-slate-800 font-medium">
+                <li>
+                  Make sure the phone's <strong>Location</strong> is on (swipe down from the top of the screen).
+                </li>
+                <li>
+                  In Chrome, tap the icon to the left of the address → <strong>Permissions</strong> →{' '}
+                  <strong>Location</strong> → <strong>Allow</strong>.
+                </li>
+                <li>Return here and pull the screen down to refresh.</li>
+              </ol>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setShowLocationHelp(false)}
+              className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold text-xs border border-slate-300 transition-colors cursor-pointer"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
