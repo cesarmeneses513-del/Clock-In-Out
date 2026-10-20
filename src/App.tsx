@@ -25,6 +25,8 @@ import { TimesheetsView } from './components/TimesheetsView';
 import { TeamManagement } from './components/TeamManagement';
 import { ManualEntryModal } from './components/ManualEntryModal';
 import { LoginScreen } from './components/LoginScreen';
+import { ReminderPrompt } from './components/ReminderPrompt';
+import { removeReminderSubscription, syncReminderSubscription } from './utils/push';
 
 const StatusScreen: React.FC<{ title: string; children?: React.ReactNode }> = ({ title, children }) => (
   <div className="min-h-screen flex flex-col items-center justify-center px-4 font-sans bg-gradient-to-br from-[#f0f6ff] via-[#ffffff] to-[#e8f1fc] text-slate-900">
@@ -198,8 +200,14 @@ export default function App() {
     return employees.filter((e) => e.status === 'clocked_in').length;
   }, [employees]);
 
+  // This device's reminder subscription follows whoever is signed in
+  useEffect(() => {
+    if (currentUser?.id) syncReminderSubscription().catch(console.error);
+  }, [currentUser?.id]);
+
   // Logout handler
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await removeReminderSubscription().catch(console.error);
     supabase.auth.signOut();
   };
 
@@ -565,6 +573,8 @@ export default function App() {
           </div>
         )}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        {currentTab === 'punch' && activeEmployee?.id === currentUser.id && <ReminderPrompt />}
+
         {currentTab === 'punch' && activeEmployee && (
           <ClockPunchCard
             activeEmployee={activeEmployee}
