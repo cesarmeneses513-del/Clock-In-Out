@@ -26,6 +26,7 @@ import { TeamManagement } from './components/TeamManagement';
 import { ManualEntryModal } from './components/ManualEntryModal';
 import { LoginScreen } from './components/LoginScreen';
 import { ReminderPrompt } from './components/ReminderPrompt';
+import { ProfileSheet } from './components/ProfileSheet';
 import { removeReminderSubscription, syncReminderSubscription } from './utils/push';
 
 const StatusScreen: React.FC<{ title: string; children?: React.ReactNode }> = ({ title, children }) => (
@@ -55,6 +56,7 @@ export default function App() {
 
   const [currentTab, setCurrentTab] = useState<ViewTab>('punch');
   const [showManualEntryModal, setShowManualEntryModal] = useState<boolean>(false);
+  const [showProfile, setShowProfile] = useState(false);
 
   // Modal alert when automatic clock-out is triggered by geofence exit
   const [geofenceAlertModal, setGeofenceAlertModal] = useState<{
@@ -545,6 +547,7 @@ export default function App() {
         currentTab={currentTab}
         onSelectTab={handleSelectTab}
         activeEmployee={currentUser}
+        onOpenProfile={() => setShowProfile(true)}
         onLogout={handleLogout}
         activeCount={activeCount}
       />
@@ -636,6 +639,17 @@ export default function App() {
           />
         )}
       </main>
+
+      {showProfile && (
+        <ProfileSheet
+          employee={currentUser}
+          onClose={() => setShowProfile(false)}
+          onLogout={() => {
+            setShowProfile(false);
+            handleLogout();
+          }}
+        />
+      )}
 
       {/* Manual Entry Modal */}
       <ManualEntryModal

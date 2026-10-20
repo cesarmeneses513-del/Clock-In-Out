@@ -1,17 +1,27 @@
 export type PunchStatus = 'clocked_in' | 'on_break' | 'clocked_out';
 export type UserRole = 'admin' | 'manager' | 'employee';
-export type ContractType = 'Internal Team' | 'ASP Contratista';
+// 'CPR' is the in-house (permanent) staff
+export type ContractType = 'Internal Team' | 'CPR' | 'ASP Contratista';
 
 // The stored value stays 'ASP Contratista' (database check constraint); this is the label shown in the UI
 export function contractTypeLabel(type?: string): string {
-  return type === 'ASP Contratista' ? 'ASP Contractor' : 'Internal Team';
+  return type === 'ASP Contratista' ? 'ASP Contractor' : type === 'CPR' ? 'CPR' : 'Internal Team';
+}
+
+// Badge colours per staff type
+export function contractTypeBadge(type?: string): string {
+  return type === 'ASP Contratista'
+    ? 'bg-purple-100 text-purple-900 border-purple-300'
+    : type === 'CPR'
+    ? 'bg-teal-100 text-teal-900 border-teal-300'
+    : 'bg-blue-100 text-blue-900 border-blue-300';
 }
 
 export interface Employee {
   id: string;
   name: string;
   role: string;
-  contractType: ContractType; // 'Internal Team' | 'ASP Contratista'
+  contractType: ContractType; // 'Internal Team' | 'CPR' | 'ASP Contratista'
   department?: string; // deprecated, replaced by contractType
   userId?: string; // auth.users id, set once the worker creates their password
   pin?: string; // deprecated: sign-in is handled by Supabase Auth

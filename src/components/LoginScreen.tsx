@@ -243,7 +243,8 @@ export const LoginScreen: React.FC = () => {
             </h1>
             <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
               Time & attendance for{' '}
-              <span className="text-blue-700 font-semibold">Internal Team</span> and{' '}
+              <span className="text-blue-700 font-semibold">Internal Team</span>,{' '}
+              <span className="text-teal-700 font-semibold">CPR</span> and{' '}
               <span className="text-purple-700 font-semibold">ASP Contractors</span>
             </p>
           </div>

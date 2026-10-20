@@ -24,7 +24,7 @@ import {
   LayoutGrid,
   List,
 } from 'lucide-react';
-import { Employee, ProjectSite, contractTypeLabel } from '../types';
+import { Employee, ProjectSite, contractTypeLabel, contractTypeBadge } from '../types';
 import { SiteMapPicker } from './SiteMapPicker';
 
 interface TeamManagementProps {
@@ -88,7 +88,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
   // Employee list search & filters (Admin / Manager)
   const [empSearch, setEmpSearch] = useState('');
   const [empRoleFilter, setEmpRoleFilter] = useState<'all' | 'admin' | 'manager' | 'employee'>('all');
-  const [empContractFilter, setEmpContractFilter] = useState<'all' | 'Internal Team' | 'ASP Contratista'>('all');
+  const [empContractFilter, setEmpContractFilter] = useState<'all' | 'Internal Team' | 'CPR' | 'ASP Contratista'>('all');
   const [empAccessFilter, setEmpAccessFilter] = useState<'all' | 'active' | 'pending'>('all');
 
   // Employee list layout, remembered on this device
@@ -122,7 +122,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
   const [empRole, setEmpRole] = useState('Site Worker');
   const [empEmail, setEmpEmail] = useState('');
   const [empPhone, setEmpPhone] = useState('');
-  const [empContractType, setEmpContractType] = useState<'Internal Team' | 'ASP Contratista'>('Internal Team');
+  const [empContractType, setEmpContractType] = useState<'Internal Team' | 'CPR' | 'ASP Contratista'>('Internal Team');
   const [empSystemRole, setEmpSystemRole] = useState<'admin' | 'manager' | 'employee'>('employee');
   const [empAssignedProject, setEmpAssignedProject] = useState<string>(projects[0]?.id || '');
   const [empColor, setEmpColor] = useState(AVATAR_COLORS[0]);
@@ -508,6 +508,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
             >
               <option value="all">All contracts</option>
               <option value="Internal Team">Internal Team</option>
+              <option value="CPR">CPR</option>
               <option value="ASP Contratista">ASP Contractors</option>
             </select>
             <select
@@ -569,11 +570,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                         </td>
                         <td className="py-2.5 px-4 whitespace-nowrap">
                           <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                              emp.contractType === 'Internal Team'
-                                ? 'bg-blue-100 text-blue-900 border-blue-300'
-                                : 'bg-purple-100 text-purple-900 border-purple-300'
-                            }`}
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${contractTypeBadge(emp.contractType)}`}
                           >
                             {contractTypeLabel(emp.contractType)}
                           </span>
@@ -688,11 +685,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                     <div className="flex items-center justify-between">
                       <span className="text-slate-500 font-medium">Contract:</span>
                       <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                          emp.contractType === 'Internal Team'
-                            ? 'bg-blue-100 text-blue-900 border-blue-300'
-                            : 'bg-purple-100 text-purple-900 border-purple-300'
-                        }`}
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${contractTypeBadge(emp.contractType)}`}
                       >
                         {contractTypeLabel(emp.contractType)}
                       </span>
@@ -1017,6 +1010,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                     className="w-full bg-white border-2 border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600 cursor-pointer"
                   >
                     <option value="Internal Team">Internal Team</option>
+                    <option value="CPR">CPR</option>
                     <option value="ASP Contratista">ASP Contractor</option>
                   </select>
                 </div>
@@ -1175,6 +1169,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                     className="w-full bg-white border-2 border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600 cursor-pointer"
                   >
                     <option value="Internal Team">Internal Team</option>
+                    <option value="CPR">CPR</option>
                     <option value="ASP Contratista">ASP Contractor</option>
                   </select>
                 </div>

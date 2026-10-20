@@ -11,7 +11,7 @@ import {
   LayoutGrid,
   List,
 } from 'lucide-react';
-import { Employee, ProjectSite, TimeEntry, contractTypeLabel } from '../types';
+import { Employee, ProjectSite, TimeEntry, contractTypeLabel, contractTypeBadge } from '../types';
 import { calculateElapsedHours, formatTimeDisplay } from '../utils/storage';
 
 interface WhoIsWorkingProps {
@@ -88,11 +88,7 @@ export const WhoIsWorking: React.FC<WhoIsWorkingProps> = ({
                   <span className="text-xs font-semibold text-slate-700">{currentUser.role}</span>
                   <span className="text-slate-400 font-bold">·</span>
                   <span
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                      currentUser.contractType === 'Internal Team'
-                        ? 'bg-blue-100 text-blue-900 border-blue-300'
-                        : 'bg-purple-100 text-purple-900 border-purple-300'
-                    }`}
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${contractTypeBadge(currentUser.contractType)}`}
                   >
                     {contractTypeLabel(currentUser.contractType)}
                   </span>
@@ -342,6 +338,16 @@ export const WhoIsWorking: React.FC<WhoIsWorkingProps> = ({
               Internal Team
             </button>
             <button
+              onClick={() => setContractTypeFilter('CPR')}
+              className={`px-3 py-1 text-xs font-bold rounded-lg whitespace-nowrap transition-colors cursor-pointer ${
+                contractTypeFilter === 'CPR'
+                  ? 'bg-teal-600 text-white'
+                  : 'text-teal-800 hover:bg-teal-50'
+              }`}
+            >
+              CPR
+            </button>
+            <button
               onClick={() => setContractTypeFilter('ASP Contratista')}
               className={`px-3 py-1 text-xs font-bold rounded-lg whitespace-nowrap transition-colors cursor-pointer ${
                 contractTypeFilter === 'ASP Contratista'
@@ -432,11 +438,7 @@ export const WhoIsWorking: React.FC<WhoIsWorkingProps> = ({
                               <div className="flex items-center gap-1.5 whitespace-nowrap">
                                 <span className="text-slate-600 font-medium">{emp.role}</span>
                                 <span
-                                  className={`text-[9px] font-bold px-1.5 rounded border ${
-                                    emp.contractType === 'Internal Team'
-                                      ? 'bg-blue-100 text-blue-900 border-blue-300'
-                                      : 'bg-purple-100 text-purple-900 border-purple-300'
-                                  }`}
+                                  className={`text-[9px] font-bold px-1.5 rounded border ${contractTypeBadge(emp.contractType)}`}
                                 >
                                   {contractTypeLabel(emp.contractType)}
                                 </span>
@@ -521,11 +523,7 @@ export const WhoIsWorking: React.FC<WhoIsWorkingProps> = ({
                           <p className="text-xs text-slate-600 font-medium">{emp.role}</p>
                           <span className="text-slate-400 font-bold">·</span>
                           <span
-                            className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${
-                              emp.contractType === 'Internal Team'
-                                ? 'bg-blue-100 text-blue-900 border-blue-300'
-                                : 'bg-purple-100 text-purple-900 border-purple-300'
-                            }`}
+                            className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${contractTypeBadge(emp.contractType)}`}
                           >
                             {contractTypeLabel(emp.contractType)}
                           </span>

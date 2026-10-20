@@ -7,6 +7,7 @@ interface NavbarProps {
   onSelectTab: (tab: ViewTab) => void;
   activeEmployee: Employee | null;
   onOpenEmployeeSwitch?: () => void;
+  onOpenProfile: () => void;
   onLogout: () => void;
   activeCount: number;
 }
@@ -15,6 +16,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   currentTab,
   onSelectTab,
   activeEmployee,
+  onOpenProfile,
   onLogout,
   activeCount,
 }) => {
@@ -102,7 +104,11 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="flex items-center gap-2.5">
             {activeEmployee && (
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-white border border-slate-300 text-left shadow-2xs">
+                <button
+                  onClick={onOpenProfile}
+                  title="My profile"
+                  className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-left shadow-2xs transition-colors cursor-pointer"
+                >
                   <div
                     className={`w-7 h-7 rounded-lg ${activeEmployee.avatarBg} flex items-center justify-center text-xs font-black text-white shadow-xs`}
                   >
@@ -123,7 +129,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       {activeEmployee.role}
                     </span>
                   </div>
-                </div>
+                </button>
 
                 <button
                   onClick={onLogout}

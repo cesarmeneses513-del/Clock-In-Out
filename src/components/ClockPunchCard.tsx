@@ -9,11 +9,12 @@ import {
   MapPin,
   X,
 } from 'lucide-react';
-import { Employee, ProjectSite, TimeEntry, LocationStamp, contractTypeLabel } from '../types';
+import { Employee, ProjectSite, TimeEntry, LocationStamp, contractTypeLabel, contractTypeBadge } from '../types';
 import { calculateElapsedHours, formatTimeDisplay, formatDateDisplay } from '../utils/storage';
 import { sound } from '../utils/audio';
 import { PULL_REFRESH_EVENT } from '../utils/pullToRefresh';
 import { captureCurrentLocation, getDistanceMeters, LocationFailure } from '../utils/geo';
+import { LocationHelpSteps } from './LocationHelpSteps';
 
 interface ClockPunchCardProps {
   activeEmployee: Employee;
@@ -100,10 +101,6 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
     const failure = await handleRefreshLocation();
     if (failure) setShowLocationHelp(true);
   };
-  const isAppleDevice =
-    typeof navigator !== 'undefined' &&
-    (/iPhone|iPad|iPod/.test(navigator.userAgent) ||
-      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
 
   useEffect(() => {
     handleRefreshLocation();
@@ -311,11 +308,7 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
                 <span className="text-xs font-semibold text-slate-700">{activeEmployee.role}</span>
                 <span className="text-slate-400 font-bold">·</span>
                 <span
-                  className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full border ${
-                    activeEmployee.contractType === 'Internal Team'
-                      ? 'bg-blue-100 text-blue-900 border-blue-300'
-                      : 'bg-purple-100 text-purple-900 border-purple-300'
-                  }`}
+                  className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full border ${contractTypeBadge(activeEmployee.contractType)}`}
                 >
                   {contractTypeLabel(activeEmployee.contractType)}
                 </span>
@@ -490,34 +483,7 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
               </button>
             </div>
 
-            {isAppleDevice ? (
-              <ol className="list-decimal pl-5 space-y-2 text-xs text-slate-800 font-medium">
-                <li>
-                  Open <strong>Settings</strong> → <strong>Privacy &amp; Security</strong> →{' '}
-                  <strong>Location Services</strong> and make sure it is <strong>On</strong>.
-                </li>
-                <li>
-                  In the same screen open <strong>Safari Websites</strong> and choose{' '}
-                  <strong>While Using the App</strong> (keep <strong>Precise Location</strong> on).
-                </li>
-                <li>
-                  Back in Safari, tap <strong>aA</strong> in the address bar → <strong>Website Settings</strong> →{' '}
-                  <strong>Location</strong> → <strong>Allow</strong>.
-                </li>
-                <li>Return here and pull the screen down to refresh.</li>
-              </ol>
-            ) : (
-              <ol className="list-decimal pl-5 space-y-2 text-xs text-slate-800 font-medium">
-                <li>
-                  Make sure the phone's <strong>Location</strong> is on (swipe down from the top of the screen).
-                </li>
-                <li>
-                  In Chrome, tap the icon to the left of the address → <strong>Permissions</strong> →{' '}
-                  <strong>Location</strong> → <strong>Allow</strong>.
-                </li>
-                <li>Return here and pull the screen down to refresh.</li>
-              </ol>
-            )}
+            <LocationHelpSteps />
 
             <button
               type="button"

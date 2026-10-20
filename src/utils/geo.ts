@@ -41,6 +41,16 @@ export async function captureCurrentLocation(): Promise<{
   }
 }
 
+// Location permission for this app, when the browser can tell without prompting
+export async function getLocationPermission(): Promise<PermissionState | 'unknown'> {
+  try {
+    const status = await navigator.permissions.query({ name: 'geolocation' });
+    return status.state;
+  } catch {
+    return 'unknown';
+  }
+}
+
 // Calculate distance in meters between two coordinates (Haversine)
 export function getDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371e3; // Earth radius in meters
