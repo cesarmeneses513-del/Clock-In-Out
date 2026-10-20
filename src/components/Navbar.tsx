@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, Users, FileSpreadsheet, Settings2, LogOut, Shield } from 'lucide-react';
+import { Clock, Users, FileSpreadsheet, Settings2, Shield } from 'lucide-react';
 import { ViewTab, Employee } from '../types';
 
 interface NavbarProps {
@@ -8,7 +8,6 @@ interface NavbarProps {
   activeEmployee: Employee | null;
   onOpenEmployeeSwitch?: () => void;
   onOpenProfile: () => void;
-  onLogout: () => void;
   activeCount: number;
 }
 
@@ -17,7 +16,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   onSelectTab,
   activeEmployee,
   onOpenProfile,
-  onLogout,
   activeCount,
 }) => {
   const isAdminOrManager = activeEmployee?.systemRole === 'admin' || activeEmployee?.systemRole === 'manager';
@@ -129,14 +127,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                       {activeEmployee.role}
                     </span>
                   </div>
-                </button>
-
-                <button
-                  onClick={onLogout}
-                  className="p-2 rounded-xl bg-white hover:bg-rose-50 text-slate-700 hover:text-rose-700 border border-slate-300 hover:border-rose-300 transition-colors cursor-pointer shadow-2xs"
-                  title="Sign out"
-                >
-                  <LogOut className="w-4 h-4" />
                 </button>
               </div>
             )}

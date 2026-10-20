@@ -548,7 +548,6 @@ export default function App() {
         onSelectTab={handleSelectTab}
         activeEmployee={currentUser}
         onOpenProfile={() => setShowProfile(true)}
-        onLogout={handleLogout}
         activeCount={activeCount}
       />
 
