@@ -12,6 +12,7 @@ import {
   List,
 } from 'lucide-react';
 import { Employee, ProjectSite, TimeEntry, contractTypeLabel, contractTypeBadge } from '../types';
+import { siteTimeZone } from '../utils/timezone';
 import { calculateElapsedHours, formatTimeDisplay } from '../utils/storage';
 
 interface WhoIsWorkingProps {
@@ -138,7 +139,7 @@ export const WhoIsWorking: React.FC<WhoIsWorkingProps> = ({
                     Clock-In Time
                   </span>
                   <div className="text-base font-bold text-slate-900 font-mono">
-                    {formatTimeDisplay(activeShift.clockInTime)}
+                    {formatTimeDisplay(activeShift.clockInTime, siteTimeZone(projects.find((p) => p.id === activeShift.projectId)))}
                   </div>
                   {elapsedInfo && (
                     <div className="text-xs text-emerald-800 font-mono font-bold">
@@ -464,7 +465,7 @@ export const WhoIsWorking: React.FC<WhoIsWorkingProps> = ({
                           {activeShift?.projectName || <span className="text-slate-400 font-normal">-</span>}
                         </td>
                         <td className="py-2.5 px-4 font-mono font-bold text-emerald-800 whitespace-nowrap">
-                          {activeShift ? formatTimeDisplay(activeShift.clockInTime) : <span className="text-slate-400 font-normal">-</span>}
+                          {activeShift ? formatTimeDisplay(activeShift.clockInTime, siteTimeZone(projects.find((p) => p.id === activeShift.projectId))) : <span className="text-slate-400 font-normal">-</span>}
                         </td>
                         <td className="py-2.5 px-4 font-mono font-bold text-blue-800 tabular-nums whitespace-nowrap">
                           {elapsedInfo ? elapsedInfo.formatted : <span className="text-slate-400 font-normal">-</span>}
@@ -557,7 +558,7 @@ export const WhoIsWorking: React.FC<WhoIsWorkingProps> = ({
                         <div className="flex items-center justify-between text-slate-700">
                           <span className="flex items-center gap-1.5 font-medium">
                             <Clock className="w-3.5 h-3.5 text-slate-500" />
-                            Clock in: {formatTimeDisplay(activeShift.clockInTime)}
+                            Clock in: {formatTimeDisplay(activeShift.clockInTime, siteTimeZone(projects.find((p) => p.id === activeShift.projectId)))}
                           </span>
                           {elapsedInfo && (
                             <span className="font-mono font-bold text-blue-800 tabular-nums">

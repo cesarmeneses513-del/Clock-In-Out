@@ -1,10 +1,12 @@
-import { Employee, TimeEntry, contractTypeLabel } from '../types';
+import { Employee, ProjectSite, TimeEntry, contractTypeLabel } from '../types';
 import { formatShortDate, formatTimeDisplay } from './storage';
+import { siteTimeZone } from './timezone';
 
 interface ExportColumn {
   key: string;
   label: string;
-  value: (entry: TimeEntry, employee?: Employee) => string | number;
+  // timeZone: the site's, so times read as local site time
+  value: (entry: TimeEntry, employee: Employee | undefined, timeZone: string) => string | number;
 }
 
 const STATUS_LABEL = { completed: 'Completed', on_break: 'On Break', active: 'Active' } as const;
@@ -16,8 +18,8 @@ export const EXPORT_COLUMNS: ExportColumn[] = [
   { key: 'staff_type', label: 'Staff type', value: (_e, emp) => (emp ? contractTypeLabel(emp.contractType) : '') },
   { key: 'date', label: 'Date', value: (e) => formatShortDate(e.date) },
   { key: 'site', label: 'Site', value: (e) => e.projectName },
-  { key: 'clock_in', label: 'Clock in', value: (e) => (e.clockInTime ? formatTimeDisplay(e.clockInTime) : '') },
-  { key: 'clock_out', label: 'Clock out', value: (e) => (e.clockOutTime ? formatTimeDisplay(e.clockOutTime) : 'On shift') },
+  { key: 'clock_in', label: 'Clock in', value: (e, _emp, tz) => (e.clockInTime ? formatTimeDisplay(e.clockInTime, tz) : '') },
+  { key: 'clock_out', label: 'Clock out', value: (e, _emp, tz) => (e.clockOutTime ? formatTimeDisplay(e.clockOutTime, tz) : 'On shift') },
   { key: 'break', label: 'Break (min)', value: (e) => e.totalBreakMinutes || 0 },
   { key: 'hours', label: 'Net hours', value: (e) => (e.totalHours ? e.totalHours.toFixed(2) : '0.00') },
   { key: 'status', label: 'Status', value: (e) => STATUS_LABEL[e.status] },
@@ -38,12 +40,14 @@ const cell = (value: string | number) => {
 };
 
 // Downloads the entries as CSV (UTF-8 BOM so Excel reads accents) with the chosen columns
-export function exportEntriesToCSV(entries: TimeEntry[], columnKeys: string[], employees: Employee[]) {
+export function exportEntriesToCSV(entries: TimeEntry[], columnKeys: string[], employees: Employee[], projects: ProjectSite[]) {
   const columns = EXPORT_COLUMNS.filter((c) => columnKeys.includes(c.key));
   const byId = new Map(employees.map((emp) => [emp.id, emp]));
-  const rows = entries.map((entry) =>
-    columns.map((c) => cell(c.value(entry, byId.get(entry.employeeId)))).join(',')
-  );
+  const siteById = new Map(projects.map((p) => [p.id, p]));
+  const rows = entries.map((entry) => {
+    const timeZone = siteTimeZone(siteById.get(entry.projectId));
+    return columns.map((c) => cell(c.value(entry, byId.get(entry.employeeId), timeZone))).join(',');
+  });
   const csv = '﻿' + [columns.map((c) => cell(c.label)).join(','), ...rows].join('\r\n');
 
   const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));

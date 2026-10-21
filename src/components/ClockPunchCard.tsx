@@ -15,6 +15,7 @@ import { sound } from '../utils/audio';
 import { PULL_REFRESH_EVENT } from '../utils/pullToRefresh';
 import { captureCurrentLocation, getDistanceMeters, LocationFailure } from '../utils/geo';
 import { LocationHelpSteps } from './LocationHelpSteps';
+import { siteTimeZone } from '../utils/timezone';
 
 interface ClockPunchCardProps {
   activeEmployee: Employee;
@@ -353,7 +354,7 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
                 <span>
                   Shift started at{' '}
                   <strong className="text-blue-800 font-mono font-bold text-sm">
-                    {formatTimeDisplay(activeShift.clockInTime)}
+                    {formatTimeDisplay(activeShift.clockInTime, siteTimeZone(shiftProject))}
                   </strong>
                 </span>
               ) : (

@@ -3,6 +3,7 @@ import { CheckCircle2, ClipboardCheck, Radio, X } from 'lucide-react';
 import { LocationStamp, ProjectSite, TimeEntry } from '../types';
 import { formatShortDate, formatTimeDisplay } from '../utils/storage';
 import { getDistanceMeters } from '../utils/geo';
+import { siteTimeZone } from '../utils/timezone';
 import { ShiftMap } from './ShiftMap';
 
 interface ShiftDetailsProps {
@@ -67,13 +68,13 @@ export const ShiftDetails: React.FC<ShiftDetailsProps> = ({
         <div className="grid grid-cols-2 gap-3 text-xs">
           <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200">
             <p className="font-black text-emerald-900 uppercase tracking-wider text-[10px]">Clock in</p>
-            <p className="font-mono font-black text-slate-900 text-base">{formatTimeDisplay(entry.clockInTime)}</p>
+            <p className="font-mono font-black text-slate-900 text-base">{formatTimeDisplay(entry.clockInTime, siteTimeZone(site))}</p>
             <p className="text-slate-700 font-medium mt-0.5">{placeLabel(entry.locationIn)}</p>
           </div>
           <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200">
             <p className="font-black text-rose-900 uppercase tracking-wider text-[10px]">Clock out</p>
             <p className="font-mono font-black text-slate-900 text-base">
-              {entry.clockOutTime ? formatTimeDisplay(entry.clockOutTime) : 'On shift'}
+              {entry.clockOutTime ? formatTimeDisplay(entry.clockOutTime, siteTimeZone(site)) : 'On shift'}
             </p>
             {entry.clockOutTime && <p className="text-slate-700 font-medium mt-0.5">{placeLabel(entry.locationOut)}</p>}
           </div>

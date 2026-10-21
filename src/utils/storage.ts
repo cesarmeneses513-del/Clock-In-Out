@@ -52,14 +52,15 @@ export function calculateElapsedHours(
   return { totalDecimalHours, formatted, totalBreakMinutes };
 }
 
-// Format ISO date to local human readable time e.g. "08:30 AM"
-export function formatTimeDisplay(isoString?: string): string {
+// Format ISO date to human readable time e.g. "08:30 AM"; in the site's time zone when given, else the device's
+export function formatTimeDisplay(isoString?: string, timeZone?: string): string {
   if (!isoString) return '--:--';
   const d = new Date(isoString);
   return d.toLocaleTimeString('en-AU', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: true,
+    timeZone,
   });
 }
 

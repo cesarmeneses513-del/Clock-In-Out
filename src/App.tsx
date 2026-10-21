@@ -16,6 +16,7 @@ import { supabase, isSupabaseConfigured } from './utils/supabase';
 import * as db from './utils/db';
 import { getDistanceMeters, watchLocation } from './utils/geo';
 import { sound } from './utils/audio';
+import { dateInZone, siteTimeZone } from './utils/timezone';
 import { AlertTriangle, RefreshCw, X } from 'lucide-react';
 import { usePullToRefresh } from './utils/pullToRefresh';
 import { Navbar } from './components/Navbar';
@@ -246,7 +247,8 @@ export default function App() {
 
     const now = new Date();
     const newShiftId = crypto.randomUUID();
-    const dateStr = now.toISOString().split('T')[0];
+    // The shift's day is the calendar day at the site (Sydney or Brisbane), not in UTC
+    const dateStr = dateInZone(now, siteTimeZone(proj));
 
     const newEntry: TimeEntry = {
       id: newShiftId,

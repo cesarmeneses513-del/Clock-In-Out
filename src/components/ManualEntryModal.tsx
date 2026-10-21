@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Calendar, Clock, Building2, User, FileText, CheckCircle2 } from 'lucide-react';
 import { Employee, ProjectSite, TimeEntry } from '../types';
+import { DEFAULT_TIME_ZONE, dateInZone, siteTimeZone, zonedToIso } from '../utils/timezone';
 
 interface ManualEntryModalProps {
   isOpen: boolean;
@@ -19,7 +20,7 @@ export const ManualEntryModal: React.FC<ManualEntryModalProps> = ({
 }) => {
   const [employeeId, setEmployeeId] = useState<string>(employees[0]?.id || '');
   const [projectId, setProjectId] = useState<string>(projects[0]?.id || '');
-  const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState<string>(() => dateInZone(new Date(), DEFAULT_TIME_ZONE));
   const [clockInTime, setClockInTime] = useState<string>('08:00');
   const [clockOutTime, setClockOutTime] = useState<string>('17:00');
   const [notes, setNotes] = useState<string>('Manual entry / adjustment');
@@ -39,8 +40,10 @@ export const ManualEntryModal: React.FC<ManualEntryModalProps> = ({
       return;
     }
 
-    const clockInIso = `${date}T${clockInTime}:00`;
-    const clockOutIso = `${date}T${clockOutTime}:00`;
+    // Typed times are the site's local time (Sydney or Brisbane), whatever the device's zone
+    const timeZone = siteTimeZone(proj);
+    const clockInIso = zonedToIso(date, clockInTime, timeZone);
+    const clockOutIso = zonedToIso(date, clockOutTime, timeZone);
 
     const startMs = new Date(clockInIso).getTime();
     const endMs = new Date(clockOutIso).getTime();

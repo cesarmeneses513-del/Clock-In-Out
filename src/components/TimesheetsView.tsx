@@ -14,6 +14,7 @@ import {
 import { Employee, ProjectSite, TimeEntry } from '../types';
 import { formatTimeDisplay, formatShortDate, calculateElapsedHours } from '../utils/storage';
 import { exportEntriesToCSV } from '../utils/exportCsv';
+import { dateInZone, siteTimeZone, timeInZone, zonedToIso } from '../utils/timezone';
 import { ShiftDetails } from './ShiftDetails';
 import { ExportCsvModal, PeriodFilter, TimesheetFilters } from './ExportCsvModal';
 
@@ -81,14 +82,13 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
     onUpdateEntry({ ...entry, isAutoClockOut: false });
   };
 
+  // Shift times are shown and edited in the site's local time (Sydney or Brisbane)
+  const zoneOf = (entry: TimeEntry) => siteTimeZone(projects.find((p) => p.id === entry.projectId));
+
   const openReview = (entry: TimeEntry) => {
-    const pad = (n: number) => n.toString().padStart(2, '0');
-    const toHHMM = (iso: string) => {
-      const d = new Date(iso);
-      return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-    };
-    setReviewInTime(toHHMM(entry.clockInTime));
-    setReviewOutTime(toHHMM(entry.clockOutTime || entry.clockInTime));
+    const timeZone = zoneOf(entry);
+    setReviewInTime(timeInZone(entry.clockInTime, timeZone));
+    setReviewOutTime(timeInZone(entry.clockOutTime || entry.clockInTime, timeZone));
     setReviewError(null);
     setReviewEntry(entry);
   };
@@ -96,13 +96,10 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
   const saveReview = (e: React.FormEvent) => {
     e.preventDefault();
     if (!reviewEntry) return;
-    // Both times stay on the shift's original calendar day
-    const atTime = (hhmm: string) => {
-      const [hours, minutes] = hhmm.split(':').map(Number);
-      const d = new Date(reviewEntry.clockInTime);
-      d.setHours(hours, minutes, 0, 0);
-      return d;
-    };
+    // Both times stay on the shift's original calendar day at the site
+    const timeZone = zoneOf(reviewEntry);
+    const day = dateInZone(new Date(reviewEntry.clockInTime), timeZone);
+    const atTime = (hhmm: string) => new Date(zonedToIso(day, hhmm, timeZone));
     const clockIn = atTime(reviewInTime);
     const clockOut = atTime(reviewOutTime);
     if (isNaN(clockIn.getTime()) || isNaN(clockOut.getTime()) || clockOut.getTime() <= clockIn.getTime()) {
@@ -168,9 +165,7 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
       today.setHours(0, 0, 0, 0);
 
       if (periodFilter === 'today') {
-        const entryStr = entry.date;
-        const todayStr = today.toISOString().split('T')[0];
-        if (entryStr !== todayStr) return false;
+        if (entry.date !== todayIso) return false;
       } else if (periodFilter === 'week') {
         const oneWeekAgo = new Date(today);
         oneWeekAgo.setDate(today.getDate() - 7);
@@ -478,7 +473,7 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
           isAdminOrManager={isAdminOrManager}
           onClose={() => setShowExport(false)}
           onExport={(columns, onlyFiltered) => {
-            exportEntriesToCSV(onlyFiltered ? filtered : visibleEntries, columns, employees);
+            exportEntriesToCSV(onlyFiltered ? filtered : visibleEntries, columns, employees, projects);
             setShowExport(false);
           }}
         />
@@ -564,13 +559,13 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
 
                       {/* Clock In */}
                       <td className="py-3.5 px-4 font-mono font-bold whitespace-nowrap text-emerald-800">
-                        {formatTimeDisplay(entry.clockInTime)}
+                        {formatTimeDisplay(entry.clockInTime, zoneOf(entry))}
                       </td>
 
                       {/* Clock Out */}
                       <td className="py-3.5 px-4 font-mono font-bold whitespace-nowrap text-slate-800">
                         {entry.clockOutTime ? (
-                          formatTimeDisplay(entry.clockOutTime)
+                          formatTimeDisplay(entry.clockOutTime, zoneOf(entry))
                         ) : (
                           <span className="text-blue-700 font-sans text-xs font-bold">
                             On shift...
@@ -715,7 +710,7 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
               <div className="flex justify-between">
                 <span className="text-slate-600 font-medium">Recorded:</span>
                 <span className="font-mono font-bold text-slate-800">
-                  {formatTimeDisplay(reviewEntry.clockInTime)} – {formatTimeDisplay(reviewEntry.clockOutTime)}
+                  {formatTimeDisplay(reviewEntry.clockInTime, zoneOf(reviewEntry))} – {formatTimeDisplay(reviewEntry.clockOutTime, zoneOf(reviewEntry))}
                 </span>
               </div>
             </div>
