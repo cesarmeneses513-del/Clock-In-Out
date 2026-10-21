@@ -64,6 +64,13 @@ export function formatTimeDisplay(isoString?: string): string {
 }
 
 // Format ISO date to local human readable date e.g. "Mon, 5 Oct 2026"
+// 'YYYY-MM-DD' → 'DD/MM/YYYY' (string split, so the day never shifts with the time zone)
+export function formatShortDate(date?: string): string {
+  if (!date) return '';
+  const [y, m, d] = date.slice(0, 10).split('-');
+  return d && m && y ? `${d}/${m}/${y}` : date;
+}
+
 export function formatDateDisplay(isoString?: string): string {
   if (!isoString) return '';
   const d = new Date(isoString);

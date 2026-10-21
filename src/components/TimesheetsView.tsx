@@ -12,7 +12,7 @@ import {
   X,
 } from 'lucide-react';
 import { Employee, ProjectSite, TimeEntry } from '../types';
-import { formatTimeDisplay, exportEntriesToCSV, calculateElapsedHours } from '../utils/storage';
+import { formatTimeDisplay, formatShortDate, exportEntriesToCSV, calculateElapsedHours } from '../utils/storage';
 import { ShiftDetails } from './ShiftDetails';
 
 interface TimesheetsViewProps {
@@ -158,7 +158,8 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
         entry.employeeName.toLowerCase().includes(q) ||
         entry.projectName.toLowerCase().includes(q) ||
         (entry.notes && entry.notes.toLowerCase().includes(q)) ||
-        entry.date.includes(q);
+        entry.date.includes(q) ||
+        formatShortDate(entry.date).includes(q);
       if (!match) return false;
     }
 
@@ -422,7 +423,7 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
                     >
                       {/* Date */}
                       <td className="py-3.5 px-4 font-mono font-semibold whitespace-nowrap text-slate-900">
-                        {entry.date}
+                        {formatShortDate(entry.date)}
                         {entry.isManual && (
                           <span className="ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">
                             Manual
@@ -547,7 +548,7 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
                             onClick={() => {
                               if (
                                 window.confirm(
-                                  `Are you sure you want to delete the entry for ${entry.employeeName} on ${entry.date}?`
+                                  `Are you sure you want to delete the entry for ${entry.employeeName} on ${formatShortDate(entry.date)}?`
                                 )
                               ) {
                                 onDeleteEntry(entry.id);
@@ -594,7 +595,7 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
               <div>
                 <h2 className="text-base font-black text-slate-900">Review Shift Times</h2>
                 <p className="text-xs text-slate-600 font-medium mt-0.5">
-                  {reviewEntry.employeeName} · {reviewEntry.date}
+                  {reviewEntry.employeeName} · {formatShortDate(reviewEntry.date)}
                 </p>
               </div>
               <button

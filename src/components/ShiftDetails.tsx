@@ -1,7 +1,7 @@
 import React from 'react';
 import { CheckCircle2, ClipboardCheck, Radio, X } from 'lucide-react';
 import { LocationStamp, ProjectSite, TimeEntry } from '../types';
-import { formatTimeDisplay } from '../utils/storage';
+import { formatShortDate, formatTimeDisplay } from '../utils/storage';
 import { getDistanceMeters } from '../utils/geo';
 import { ShiftMap } from './ShiftMap';
 
@@ -48,7 +48,7 @@ export const ShiftDetails: React.FC<ShiftDetailsProps> = ({
           <div>
             <h2 className="text-base font-black text-slate-900">{entry.employeeName}</h2>
             <p className="text-xs text-slate-600 font-medium mt-0.5">
-              {entry.date} · {entry.projectName}
+              {formatShortDate(entry.date)} · {entry.projectName}
             </p>
           </div>
           <button onClick={onClose} className="p-1 rounded-lg text-slate-500 hover:text-slate-900 cursor-pointer" aria-label="Close">
