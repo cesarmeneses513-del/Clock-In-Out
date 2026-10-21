@@ -12,8 +12,10 @@ import {
   X,
 } from 'lucide-react';
 import { Employee, ProjectSite, TimeEntry } from '../types';
-import { formatTimeDisplay, formatShortDate, exportEntriesToCSV, calculateElapsedHours } from '../utils/storage';
+import { formatTimeDisplay, formatShortDate, calculateElapsedHours } from '../utils/storage';
+import { exportEntriesToCSV } from '../utils/exportCsv';
 import { ShiftDetails } from './ShiftDetails';
+import { ExportCsvModal, PeriodFilter, TimesheetFilters } from './ExportCsvModal';
 
 interface TimesheetsViewProps {
   currentUser: Employee;
@@ -40,9 +42,25 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
   onLoadFullHistory,
 }) => {
   const [search, setSearch] = useState('');
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('all');
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
-  const [periodFilter, setPeriodFilter] = useState<'all' | 'today' | 'week' | 'month'>(fullHistory ? 'all' : 'month');
+  const now = new Date();
+  const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const [filters, setFilters] = useState<TimesheetFilters>({
+    period: fullHistory ? 'all' : 'month',
+    from: todayIso.slice(0, 8) + '01',
+    to: todayIso,
+    employeeId: 'all',
+    projectId: 'all',
+    staffType: 'all',
+  });
+  const [showExport, setShowExport] = useState(false);
+
+  // Older shifts are only downloaded when a filter can reach them
+  const updateFilters = (change: Partial<TimesheetFilters>) => {
+    if (change.period === 'all' || change.period === 'custom') onLoadFullHistory();
+    setFilters((prev) => ({ ...prev, ...change }));
+  };
+  const setPeriodFilter = (period: PeriodFilter) => updateFilters({ period });
+  const periodFilter = filters.period;
 
   const [reviewOnly, setReviewOnly] = useState(false);
 
@@ -114,6 +132,8 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
     ? entries
     : entries.filter((e) => e.employeeId === currentUser.id);
 
+  const employeeById = new Map(employees.map((emp) => [emp.id, emp]));
+
   // Filtered dataset
   const needsReviewCount = visibleEntries.filter((e) => e.needsReview).length;
 
@@ -121,17 +141,28 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
     if (reviewOnly && !entry.needsReview) return false;
 
     // Employee filter
-    if (selectedEmployeeId !== 'all' && entry.employeeId !== selectedEmployeeId) {
+    if (filters.employeeId !== 'all' && entry.employeeId !== filters.employeeId) {
       return false;
     }
 
     // Project filter
-    if (selectedProjectId !== 'all' && entry.projectId !== selectedProjectId) {
+    if (filters.projectId !== 'all' && entry.projectId !== filters.projectId) {
       return false;
     }
 
+    // Staff type filter
+    if (filters.staffType !== 'all' && employeeById.get(entry.employeeId)?.contractType !== filters.staffType) {
+      return false;
+    }
+
+    // Date range (YYYY-MM-DD strings compare in date order)
+    if (periodFilter === 'custom') {
+      if (filters.from && entry.date < filters.from) return false;
+      if (filters.to && entry.date > filters.to) return false;
+    }
+
     // Period filter
-    if (periodFilter !== 'all') {
+    if (periodFilter !== 'all' && periodFilter !== 'custom') {
       const entryDate = new Date(entry.date);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -271,11 +302,14 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
           {/* Action CTAs */}
           <div className="flex items-center gap-2 self-end md:self-auto">
             <button
-              onClick={() => exportEntriesToCSV(filtered)}
+              onClick={() => {
+                onLoadFullHistory();
+                setShowExport(true);
+              }}
               className="px-3.5 py-2 text-xs font-bold rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 flex items-center gap-2 transition-colors cursor-pointer"
             >
               <Download className="w-4 h-4 text-slate-700" />
-              <span>{isAdminOrManager ? 'Export to Excel (CSV)' : 'Download My Hours (CSV)'}</span>
+              <span>Export CSV</span>
             </button>
 
             {isAdminOrManager && (needsReviewCount > 0 || reviewOnly) && (
@@ -305,14 +339,11 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
         </div>
 
         {/* Filter Dropdowns & Period selector */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-200">
+        <div className={`grid grid-cols-1 gap-3 pt-2 border-t border-slate-200 ${isAdminOrManager ? 'sm:grid-cols-4' : 'sm:grid-cols-3'}`}>
           {/* Period selector */}
           <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200">
             <button
-              onClick={() => {
-                setPeriodFilter('all');
-                onLoadFullHistory();
-              }}
+              onClick={() => setPeriodFilter('all')}
               className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
                 periodFilter === 'all'
                   ? 'bg-blue-600 text-white shadow-xs'
@@ -351,13 +382,23 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
             >
               Month
             </button>
+            <button
+              onClick={() => setPeriodFilter('custom')}
+              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                periodFilter === 'custom'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-slate-700 hover:text-slate-900'
+              }`}
+            >
+              Dates
+            </button>
           </div>
 
           {/* Employee dropdown: ONLY shown to Admin/Manager */}
           {isAdminOrManager ? (
             <select
-              value={selectedEmployeeId}
-              onChange={(e) => setSelectedEmployeeId(e.target.value)}
+              value={filters.employeeId}
+              onChange={(e) => updateFilters({ employeeId: e.target.value })}
               className="bg-white border-2 border-slate-300 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600 cursor-pointer"
             >
               <option value="all">All employees ({employees.length})</option>
@@ -376,8 +417,8 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
 
           {/* Project dropdown */}
           <select
-            value={selectedProjectId}
-            onChange={(e) => setSelectedProjectId(e.target.value)}
+            value={filters.projectId}
+            onChange={(e) => updateFilters({ projectId: e.target.value })}
             className="bg-white border-2 border-slate-300 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600 cursor-pointer"
           >
             <option value="all">All sites / projects ({projects.length})</option>
@@ -387,8 +428,61 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
               </option>
             ))}
           </select>
+
+          {isAdminOrManager && (
+            <select
+              value={filters.staffType}
+              onChange={(e) => updateFilters({ staffType: e.target.value })}
+              className="bg-white border-2 border-slate-300 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600 cursor-pointer"
+            >
+              <option value="all">All staff types</option>
+              <option value="Internal Team">Internal Team</option>
+              <option value="CPR">CPR</option>
+              <option value="ASP Contratista">ASP Contractors</option>
+            </select>
+          )}
         </div>
+
+        {periodFilter === 'custom' && (
+          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2">
+            <label className="text-xs font-bold text-slate-700 sm:flex sm:items-center sm:gap-2">
+              From
+              <input
+                type="date"
+                value={filters.from}
+                onChange={(e) => updateFilters({ from: e.target.value })}
+                className="w-full sm:w-auto mt-1 sm:mt-0 bg-white border-2 border-slate-300 rounded-xl px-3 py-1.5 text-xs font-semibold font-mono text-slate-900 focus:outline-none focus:border-blue-600"
+              />
+            </label>
+            <label className="text-xs font-bold text-slate-700 sm:flex sm:items-center sm:gap-2">
+              To
+              <input
+                type="date"
+                value={filters.to}
+                onChange={(e) => updateFilters({ to: e.target.value })}
+                className="w-full sm:w-auto mt-1 sm:mt-0 bg-white border-2 border-slate-300 rounded-xl px-3 py-1.5 text-xs font-semibold font-mono text-slate-900 focus:outline-none focus:border-blue-600"
+              />
+            </label>
+          </div>
+        )}
       </div>
+
+      {showExport && (
+        <ExportCsvModal
+          totalCount={visibleEntries.length}
+          filteredCount={filtered.length}
+          filters={filters}
+          onFiltersChange={updateFilters}
+          employees={employees}
+          projects={projects}
+          isAdminOrManager={isAdminOrManager}
+          onClose={() => setShowExport(false)}
+          onExport={(columns, onlyFiltered) => {
+            exportEntriesToCSV(onlyFiltered ? filtered : visibleEntries, columns, employees);
+            setShowExport(false);
+          }}
+        />
+      )}
 
       {/* Timesheets Table */}
       <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">

@@ -10,13 +10,15 @@ interface ShiftMapProps {
 }
 
 // Plain dots instead of Leaflet's image marker, whose asset URLs break when bundled
-const dot = (color: string, label: string) =>
-  L.divIcon({
+const dot = (color: string, label: string) => {
+  const width = label.length > 2 ? 34 : 24;
+  return L.divIcon({
     className: '',
-    html: `<div style="width:22px;height:22px;border-radius:9999px;background:${color};border:3px solid #ffffff;box-shadow:0 1px 6px rgba(15,23,42,0.5);color:#fff;font:800 10px/16px sans-serif;text-align:center">${label}</div>`,
-    iconSize: [22, 22],
-    iconAnchor: [11, 11],
+    html: `<div style="box-sizing:border-box;width:${width}px;height:24px;border-radius:9999px;background:${color};border:3px solid #ffffff;box-shadow:0 1px 6px rgba(15,23,42,0.5);color:#fff;font:800 10px/18px sans-serif;text-align:center">${label}</div>`,
+    iconSize: [width, 24],
+    iconAnchor: [width / 2, 12],
   });
+};
 
 // Read-only map of a shift: the site geofence, where the worker clocked in (green) and out (red)
 export const ShiftMap: React.FC<ShiftMapProps> = ({ site, locationIn, locationOut }) => {
