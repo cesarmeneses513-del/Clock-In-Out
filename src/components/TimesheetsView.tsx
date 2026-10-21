@@ -60,12 +60,7 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
 
   // Accepts an automatic geofence clock-out; the original note stays as the record of what happened
   const approveGeofence = (entry: TimeEntry) => {
-    const stamp = `[Geofence clock-out approved by ${currentUser.name}]`;
-    onUpdateEntry({
-      ...entry,
-      isAutoClockOut: false,
-      notes: entry.notes ? `${entry.notes} | ${stamp}` : stamp,
-    });
+    onUpdateEntry({ ...entry, isAutoClockOut: false });
   };
 
   const openReview = (entry: TimeEntry) => {
