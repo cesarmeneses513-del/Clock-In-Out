@@ -30,35 +30,40 @@ export const ShiftMap: React.FC<ShiftMapProps> = ({ site, locationIn, locationOu
       attribution: '&copy; OpenStreetMap contributors',
     }).addTo(map);
 
+    const valid = (lat?: number, lng?: number) => Number.isFinite(lat) && Number.isFinite(lng);
+    // Bounds come from the coordinates: layers have no size until the map has a view
     const bounds = L.latLngBounds([]);
-    if (site?.latitude !== undefined && site.longitude !== undefined) {
-      const circle = L.circle([site.latitude, site.longitude], {
-        radius: site.geofenceRadius || 150,
+    if (site && valid(site.latitude, site.longitude)) {
+      const radius = site.geofenceRadius || 150;
+      L.circle([site.latitude!, site.longitude!], {
+        radius,
         color: '#2563eb',
         weight: 2,
         fillColor: '#2563eb',
         fillOpacity: 0.12,
       }).addTo(map);
-      bounds.extend(circle.getBounds());
+      bounds.extend(L.latLng(site.latitude!, site.longitude!).toBounds(radius * 2));
     }
-    if (locationIn) {
+    if (locationIn && valid(locationIn.latitude, locationIn.longitude)) {
       L.marker([locationIn.latitude, locationIn.longitude], { icon: dot('#059669', 'IN') })
         .bindTooltip('Clock in')
         .addTo(map);
       bounds.extend([locationIn.latitude, locationIn.longitude]);
     }
-    if (locationOut) {
+    if (locationOut && valid(locationOut.latitude, locationOut.longitude)) {
       L.marker([locationOut.latitude, locationOut.longitude], { icon: dot('#e11d48', 'OUT') })
         .bindTooltip('Clock out')
         .addTo(map);
       bounds.extend([locationOut.latitude, locationOut.longitude]);
     }
-    map.fitBounds(bounds, { padding: [28, 28], maxZoom: 17 });
+    const fit = () =>
+      bounds.isValid() ? map.fitBounds(bounds, { padding: [28, 28], maxZoom: 17 }) : map.setView([-33.8688, 151.2093], 11);
+    fit();
 
     // The pop-up is still laying out when the map mounts
     const resizeTimer = setTimeout(() => {
       map.invalidateSize();
-      map.fitBounds(bounds, { padding: [28, 28], maxZoom: 17 });
+      fit();
     }, 150);
 
     return () => {
