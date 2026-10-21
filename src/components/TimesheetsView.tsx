@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Employee, ProjectSite, TimeEntry } from '../types';
 import { formatTimeDisplay, exportEntriesToCSV, calculateElapsedHours } from '../utils/storage';
+import { ShiftDetails } from './ShiftDetails';
 
 interface TimesheetsViewProps {
   currentUser: Employee;
@@ -51,7 +52,21 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
   const [reviewOutTime, setReviewOutTime] = useState('');
   const [reviewError, setReviewError] = useState<string | null>(null);
 
+  // Shift opened in the details pop-up (by id, so it shows the latest version after an edit)
+  const [detailsId, setDetailsId] = useState<string | null>(null);
+  const detailsEntry = detailsId ? entries.find((e) => e.id === detailsId) : undefined;
+
   const isAdminOrManager = currentUser.systemRole === 'admin' || currentUser.systemRole === 'manager';
+
+  // Accepts an automatic geofence clock-out; the original note stays as the record of what happened
+  const approveGeofence = (entry: TimeEntry) => {
+    const stamp = `[Geofence clock-out approved by ${currentUser.name}]`;
+    onUpdateEntry({
+      ...entry,
+      isAutoClockOut: false,
+      notes: entry.notes ? `${entry.notes} | ${stamp}` : stamp,
+    });
+  };
 
   const openReview = (entry: TimeEntry) => {
     const pad = (n: number) => n.toString().padStart(2, '0');
@@ -407,7 +422,8 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
                   return (
                     <tr
                       key={entry.id}
-                      className="hover:bg-blue-50/40 transition-colors group"
+                      onClick={() => setDetailsId(entry.id)}
+                      className="hover:bg-blue-50/40 transition-colors group cursor-pointer"
                     >
                       {/* Date */}
                       <td className="py-3.5 px-4 font-mono font-semibold whitespace-nowrap text-slate-900">
@@ -518,7 +534,7 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
 
                       {/* Actions (Only Admin/Manager) */}
                       {isAdminOrManager && (
-                        <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                        <td className="py-3.5 px-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                           {entry.status === 'completed' && (
                             <button
                               onClick={() => openReview(entry)}
@@ -557,6 +573,20 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
           </table>
         </div>
       </div>
+
+      {detailsEntry && (
+        <ShiftDetails
+          entry={detailsEntry}
+          site={projects.find((p) => p.id === detailsEntry.projectId)}
+          canManage={isAdminOrManager}
+          onClose={() => setDetailsId(null)}
+          onApproveGeofence={() => approveGeofence(detailsEntry)}
+          onEditTimes={() => {
+            setDetailsId(null);
+            openReview(detailsEntry);
+          }}
+        />
+      )}
 
       {/* Review / correct clock-out (Admin / Manager) */}
       {reviewEntry && (

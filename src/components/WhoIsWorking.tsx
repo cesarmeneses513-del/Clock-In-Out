@@ -101,7 +101,10 @@ export const WhoIsWorking: React.FC<WhoIsWorkingProps> = ({
                         : 'bg-slate-100 text-slate-800 border-slate-300'
                     }`}
                   >
-                    {currentUser.status === 'clocked_in' ? '● On Shift' : '○ Off Shift'}
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className={`w-1.5 h-1.5 rounded-full ${currentUser.status === 'clocked_in' ? 'bg-emerald-600' : 'bg-slate-400'}`} />
+                      {currentUser.status === 'clocked_in' ? 'On Shift' : 'Off Shift'}
+                    </span>
                   </span>
                 </div>
               </div>

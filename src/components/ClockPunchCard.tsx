@@ -301,7 +301,10 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
                       : 'bg-slate-100 text-slate-800 border-slate-300'
                   }`}
                 >
-                  {isClockedIn ? '● On Shift' : '○ Off Shift'}
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className={`w-1.5 h-1.5 rounded-full ${isClockedIn ? 'bg-emerald-600' : 'bg-slate-400'}`} />
+                    {isClockedIn ? 'On Shift' : 'Off Shift'}
+                  </span>
                 </span>
               </div>
               <div className="flex items-center gap-1.5 mt-0.5">
