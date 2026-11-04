@@ -12,7 +12,7 @@ const wasDismissed = () => {
   }
 };
 
-// Offers the 3:30 pm "still clocked in?" notification on the worker's own device
+// Offers the afternoon "still clocked in?" notification on the worker's own device
 export const ReminderPrompt: React.FC = () => {
   const [state, setState] = useState<ReminderState | null>(null);
   const [dismissed, setDismissed] = useState(wasDismissed);
@@ -54,19 +54,22 @@ export const ReminderPrompt: React.FC = () => {
         <p className="font-bold text-sm">Clock-out reminder</p>
         {state === 'needs_install' && (
           <p>
-            To get a reminder at 3:30 pm when you're still clocked in, add this app to your Home Screen:
+            To get a reminder in the afternoon when you're still clocked in, add this app to your Home Screen:
             tap <strong>Share</strong> → <strong>Add to Home Screen</strong>, then open it from there.
           </p>
         )}
         {state === 'denied' && (
           <p>
             Notifications are blocked for this app. Allow them in your phone settings to get a reminder at
-            3:30 pm when you're still clocked in.
+            the time you choose when you're still clocked in.
           </p>
         )}
         {state === 'off' && (
           <>
-            <p>Get a notification at 3:30 pm if you're still clocked in, in case you forgot to clock out.</p>
+            <p>
+              Get a notification at 3:30 pm if you're still clocked in, in case you forgot to clock out. You can
+              change the time in your profile.
+            </p>
             <button
               onClick={turnOn}
               disabled={busy}

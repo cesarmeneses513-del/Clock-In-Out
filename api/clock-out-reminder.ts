@@ -9,7 +9,7 @@ interface Subscription {
   keys: { p256dh: string; auth: string };
 }
 
-// Called by Supabase (send_clock_out_reminders) with the devices of workers still clocked in at 3:30 pm
+// Called by Supabase (send_clock_out_reminders) with the devices of workers still clocked in at their reminder time
 export async function POST(request: Request): Promise<Response> {
   const secret = process.env.PUSH_SECRET;
   const privateKey = process.env.VAPID_PRIVATE_KEY;
@@ -29,7 +29,7 @@ export async function POST(request: Request): Promise<Response> {
 
   const payload = JSON.stringify({
     title: 'Still clocked in?',
-    body: "It's 3:30 pm and your shift is still open. If you've already left the site, tap here to clock out.",
+    body: "Your shift is still open. If you've already left the site, tap here to clock out.",
   });
 
   const results = await Promise.allSettled(

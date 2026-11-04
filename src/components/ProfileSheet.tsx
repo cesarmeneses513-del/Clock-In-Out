@@ -1,7 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { BellRing, LogOut, Mail, MapPin, Phone, X } from 'lucide-react';
 import { Employee, contractTypeBadge, contractTypeLabel } from '../types';
-import { enableReminders, getReminderState, ReminderState } from '../utils/push';
+import {
+  DEFAULT_REMINDER_TIME,
+  enableReminders,
+  formatReminderTime,
+  getReminderState,
+  ReminderState,
+  setReminderTime,
+} from '../utils/push';
 import { captureCurrentLocation, getLocationPermission } from '../utils/geo';
 import { LocationHelpSteps } from './LocationHelpSteps';
 
@@ -14,6 +21,12 @@ interface ProfileSheetProps {
 type LocationState = 'checking' | 'on' | 'off' | 'not_set';
 
 const roleLabel = { admin: 'Admin', manager: 'Manager', employee: 'Employee' } as const;
+
+// Every 15 minutes from 12:00 to 4:45 pm (shifts close on their own at 5 pm)
+const REMINDER_OPTIONS = Array.from({ length: 20 }, (_, i) => {
+  const minutes = 12 * 60 + i * 15;
+  return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+});
 
 const StatusChip: React.FC<{ on: boolean; label: string }> = ({ on, label }) => (
   <span
@@ -30,6 +43,8 @@ export const ProfileSheet: React.FC<ProfileSheetProps> = ({ employee, onClose, o
   const [reminder, setReminder] = useState<ReminderState | null>(null);
   const [reminderBusy, setReminderBusy] = useState(false);
   const [reminderError, setReminderError] = useState<string | null>(null);
+  const [remindAt, setRemindAt] = useState(employee.reminderTime || DEFAULT_REMINDER_TIME);
+  const [timeStatus, setTimeStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [location, setLocation] = useState<LocationState>('checking');
   const [showLocationHelp, setShowLocationHelp] = useState(false);
 
@@ -50,6 +65,20 @@ export const ProfileSheet: React.FC<ProfileSheetProps> = ({ employee, onClose, o
       setReminderError('Could not turn on reminders. Please try again.');
     } finally {
       setReminderBusy(false);
+    }
+  };
+
+  const changeReminderTime = async (time: string) => {
+    const previous = remindAt;
+    setRemindAt(time);
+    setTimeStatus('saving');
+    try {
+      await setReminderTime(time);
+      setTimeStatus('saved');
+    } catch (err) {
+      console.error(err);
+      setRemindAt(previous);
+      setTimeStatus('error');
     }
   };
 
@@ -123,7 +152,33 @@ export const ProfileSheet: React.FC<ProfileSheetProps> = ({ employee, onClose, o
               </div>
               {reminder && <StatusChip on={reminder === 'on'} label={reminder === 'on' ? 'On' : 'Off'} />}
             </div>
-            <p className="text-xs text-slate-600">A notification at 3:30 pm if you're still clocked in.</p>
+            <p className="text-xs text-slate-600">
+              A notification at {formatReminderTime(remindAt)} (site time) if you're still clocked in.
+            </p>
+            <div className="flex items-center gap-2">
+              <label htmlFor="reminder-time" className="text-xs font-bold text-slate-800">
+                Remind me at
+              </label>
+              <select
+                id="reminder-time"
+                value={remindAt}
+                onChange={(e) => changeReminderTime(e.target.value)}
+                disabled={timeStatus === 'saving'}
+                className="bg-white border-2 border-slate-300 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-blue-600 cursor-pointer disabled:opacity-60"
+              >
+                {!REMINDER_OPTIONS.includes(remindAt) && <option value={remindAt}>{formatReminderTime(remindAt)}</option>}
+                {REMINDER_OPTIONS.map((t) => (
+                  <option key={t} value={t}>
+                    {formatReminderTime(t)}
+                  </option>
+                ))}
+              </select>
+              {timeStatus === 'saving' && <span className="text-[11px] text-slate-500 font-semibold">Saving...</span>}
+              {timeStatus === 'saved' && <span className="text-[11px] text-emerald-700 font-bold">Saved</span>}
+            </div>
+            {timeStatus === 'error' && (
+              <p className="text-xs text-rose-700 font-semibold">Could not save the time. Please try again.</p>
+            )}
             {reminder === 'off' && (
               <button
                 onClick={turnOnReminder}

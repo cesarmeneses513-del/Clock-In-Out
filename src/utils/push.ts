@@ -71,6 +71,20 @@ export async function syncReminderSubscription(): Promise<void> {
   if (sub) await saveSubscription(sub);
 }
 
+export const DEFAULT_REMINDER_TIME = '15:30';
+
+// Saves the signed-in worker's reminder time ('HH:MM', local site time, before 5 pm)
+export async function setReminderTime(time: string): Promise<void> {
+  const { error } = await supabase.rpc('set_reminder_time', { p_time: time });
+  if (error) throw error;
+}
+
+// '15:30' → '3:30 pm'
+export function formatReminderTime(time: string): string {
+  const [h, m] = time.split(':').map(Number);
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`;
+}
+
 // Before sign-out (needs the session): this device stops getting the signed-in worker's reminders
 export async function removeReminderSubscription(): Promise<void> {
   if (!pushSupported()) return;

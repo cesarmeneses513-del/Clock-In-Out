@@ -38,6 +38,9 @@ export interface Employee {
   // May clock in at sites that have no location (e.g. "Multiples Location"). Admins always can.
   // Undefined until the open_site_access column exists in the database.
   openSiteAccess?: boolean;
+  // 'HH:MM' local site time of the clock-out reminder (3:30 pm by default).
+  // Undefined until the reminder_time column exists in the database.
+  reminderTime?: string;
 }
 
 export interface ProjectSite {

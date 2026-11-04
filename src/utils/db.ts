@@ -32,6 +32,7 @@ function toEmployee(r: Row): Employee {
     invitationStatus: r.invitation_status,
     invitedAt: r.invited_at ?? undefined,
     openSiteAccess: r.open_site_access ?? undefined,
+    reminderTime: r.reminder_time ? String(r.reminder_time).slice(0, 5) : undefined,
   };
 }
 
