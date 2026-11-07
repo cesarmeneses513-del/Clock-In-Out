@@ -98,10 +98,11 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
   const saveReview = (e: React.FormEvent) => {
     e.preventDefault();
     if (!reviewEntry) return;
-    // Typed times are local to the chosen site, on the shift's original calendar day
+    // Typed times are local to the chosen site, on the day the shift actually started
+    // (from the clock-in instant: the stored date of older entries can be a UTC day off)
     const site = projects.find((p) => p.id === reviewProjectId);
     const timeZone = siteTimeZone(site);
-    const day = reviewEntry.date || dateInZone(new Date(reviewEntry.clockInTime), zoneOf(reviewEntry));
+    const day = dateInZone(new Date(reviewEntry.clockInTime), zoneOf(reviewEntry));
     const atTime = (hhmm: string) => new Date(zonedToIso(day, hhmm, timeZone));
     const clockIn = atTime(reviewInTime);
     const clockOut = atTime(reviewOutTime);
@@ -119,6 +120,7 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
     onUpdateEntry({
       ...reviewEntry,
       ...(site ? { projectId: site.id, projectName: site.name } : {}),
+      date: dateInZone(clockIn, timeZone),
       clockInTime: inIso,
       clockOutTime: outIso,
       totalHours: totalDecimalHours,
