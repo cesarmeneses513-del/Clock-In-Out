@@ -117,7 +117,7 @@ export const ShiftDetails: React.FC<ShiftDetailsProps> = ({
             className="w-full py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
           >
             <ClipboardCheck className="w-4 h-4" />
-            Edit shift times
+            Edit shift
           </button>
         )}
       </div>

@@ -67,6 +67,7 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
 
   // Entry whose times an admin is correcting, and the HH:MM typed for each
   const [reviewEntry, setReviewEntry] = useState<TimeEntry | null>(null);
+  const [reviewProjectId, setReviewProjectId] = useState('');
   const [reviewInTime, setReviewInTime] = useState('');
   const [reviewOutTime, setReviewOutTime] = useState('');
   const [reviewError, setReviewError] = useState<string | null>(null);
@@ -89,6 +90,7 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
     const timeZone = zoneOf(entry);
     setReviewInTime(timeInZone(entry.clockInTime, timeZone));
     setReviewOutTime(timeInZone(entry.clockOutTime || entry.clockInTime, timeZone));
+    setReviewProjectId(entry.projectId);
     setReviewError(null);
     setReviewEntry(entry);
   };
@@ -96,9 +98,10 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
   const saveReview = (e: React.FormEvent) => {
     e.preventDefault();
     if (!reviewEntry) return;
-    // Both times stay on the shift's original calendar day at the site
-    const timeZone = zoneOf(reviewEntry);
-    const day = dateInZone(new Date(reviewEntry.clockInTime), timeZone);
+    // Typed times are local to the chosen site, on the shift's original calendar day
+    const site = projects.find((p) => p.id === reviewProjectId);
+    const timeZone = siteTimeZone(site);
+    const day = reviewEntry.date || dateInZone(new Date(reviewEntry.clockInTime), zoneOf(reviewEntry));
     const atTime = (hhmm: string) => new Date(zonedToIso(day, hhmm, timeZone));
     const clockIn = atTime(reviewInTime);
     const clockOut = atTime(reviewOutTime);
@@ -115,6 +118,7 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
     );
     onUpdateEntry({
       ...reviewEntry,
+      ...(site ? { projectId: site.id, projectName: site.name } : {}),
       clockInTime: inIso,
       clockOutTime: outIso,
       totalHours: totalDecimalHours,
@@ -682,7 +686,7 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
           >
             <div className="flex items-start justify-between pb-3 border-b border-slate-200">
               <div>
-                <h2 className="text-base font-black text-slate-900">Review Shift Times</h2>
+                <h2 className="text-base font-black text-slate-900">Review Shift</h2>
                 <p className="text-xs text-slate-600 font-medium mt-0.5">
                   {reviewEntry.employeeName} · {formatShortDate(reviewEntry.date)}
                 </p>
@@ -716,6 +720,26 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
             </div>
 
             <div>
+              <label htmlFor="review-site" className="text-xs font-bold text-slate-900 block mb-1">Site</label>
+              <select
+                id="review-site"
+                value={reviewProjectId}
+                onChange={(e) => setReviewProjectId(e.target.value)}
+                className="w-full bg-white border-2 border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-blue-600 cursor-pointer"
+              >
+                {!projects.some((p) => p.id === reviewProjectId) && (
+                  <option value={reviewProjectId}>{reviewEntry.projectName}</option>
+                )}
+                {projects.map((proj) => (
+                  <option key={proj.id} value={proj.id}>
+                    {proj.name}
+                    {proj.code ? ` (${proj.code})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-900 block mb-1">Clock-In Time</label>
@@ -739,7 +763,7 @@ export const TimesheetsView: React.FC<TimesheetsViewProps> = ({
                 </div>
               </div>
               <p className="text-xs text-slate-600 mt-1 font-medium">
-                Saving recalculates the hours and marks the entry as reviewed.
+                Times are the site's local time. Saving recalculates the hours and marks the entry as reviewed.
               </p>
             </div>
 
