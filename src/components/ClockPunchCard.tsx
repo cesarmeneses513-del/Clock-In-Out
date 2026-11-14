@@ -174,32 +174,7 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
       : 'You are not inside any site area. Pull down to check again.'
     : null;
 
-  // Geofence Radius calculations (active in background)
-  const radius = selectedProject?.geofenceRadius || 150;
-  const distanceToProject =
-    gpsLocation && selectedProject?.latitude !== undefined && selectedProject?.longitude !== undefined
-      ? getDistanceMeters(
-          gpsLocation.latitude,
-          gpsLocation.longitude,
-          selectedProject.latitude,
-          selectedProject.longitude
-        )
-      : null;
-
-  const isOutsidePerimeter = distanceToProject !== null && distanceToProject > radius;
-
-  // Auto-clockout detection in background when clocked in and exiting perimeter
-  useEffect(() => {
-    if (
-      isOwnCard &&
-      activeEmployee.status === 'clocked_in' &&
-      isOutsidePerimeter &&
-      selectedProject?.autoClockOut !== false &&
-      !loadingAction
-    ) {
-      handleClockOutAction(true, distanceToProject);
-    }
-  }, [activeEmployee.status, isOutsidePerimeter, selectedProject?.autoClockOut]);
+  // Automatic clock-out on leaving the site is handled once, in App (it waits for precise, repeated readings)
 
   const handleClockInAction = async () => {
     if (!selectedProject) return;
@@ -217,25 +192,14 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
     }
   };
 
-  const handleClockOutAction = async (isAuto = false, distance?: number | null) => {
+  const handleClockOutAction = async () => {
     setLoadingAction('clock_out');
-    if (isAuto) {
-      sound.playGeofenceAlert();
-    } else {
-      sound.playClockOut();
-    }
+    sound.playClockOut();
     try {
-      const autoNote = isAuto
-        ? `[AUTOMATIC GEOFENCE CLOCK-OUT] Employee detected ${distance || 'more than ' + radius}m outside the perimeter of ${selectedProject?.name}.`
-        : undefined;
-      const finalNotes = notes ? (autoNote ? `${autoNote} | ${notes}` : notes) : autoNote;
-
-      await onClockOut(finalNotes, gpsLocation || undefined, isAuto);
+      await onClockOut(notes || undefined, gpsLocation || undefined);
       setLastNotification({
-        type: isAuto ? 'warning' : 'info',
-        message: isAuto
-          ? `Automatic clock-out recorded! You left the allowed ${radius}m radius of ${selectedProject?.name} (detected at ${distance}m).`
-          : `Clock-out recorded at ${formatTimeDisplay(new Date().toISOString())}! Shift completed.`,
+        type: 'info',
+        message: `Clock-out recorded at ${formatTimeDisplay(new Date().toISOString())}! Shift completed.`,
       });
       setNotes('');
     } finally {
@@ -372,7 +336,7 @@ export const ClockPunchCard: React.FC<ClockPunchCardProps> = ({
         <div className="pt-2 pb-5">
           {isClockedIn ? (
             <button
-              onClick={() => handleClockOutAction(false)}
+              onClick={handleClockOutAction}
               disabled={loadingAction !== null}
               className="w-full py-4 sm:py-5 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black text-base sm:text-lg shadow-lg shadow-rose-600/30 flex items-center justify-center gap-3 transition-all transform active:scale-[0.99] disabled:opacity-50 cursor-pointer"
             >

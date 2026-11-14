@@ -35,7 +35,8 @@ export const EXPORT_COLUMNS: ExportColumn[] = [
 export const DEFAULT_EXPORT_COLUMNS = EXPORT_COLUMNS.map((c) => c.key).filter((k) => k !== 'id' && k !== 'device');
 
 const cell = (value: string | number) => {
-  const text = String(value);
+  // Text starting like a formula (=, +, -, @) is prefixed with ' so Excel shows it instead of running it
+  const text = typeof value === 'string' && /^[=+\-@\t\r]/.test(value) ? `'${value}` : String(value);
   return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 };
 

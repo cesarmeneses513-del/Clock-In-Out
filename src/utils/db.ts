@@ -264,10 +264,11 @@ export async function checkInvitation(email: string): Promise<InvitationInfo | n
   const row = Array.isArray(data) ? data[0] : data;
   if (!row) return null;
   return {
-    name: row.name,
-    role: row.role,
-    contractType: row.contract_type,
-    avatarBg: row.avatar_bg,
+    // Only pending invitations come with these details; an active account just says it exists
+    name: row.name ?? '',
+    role: row.role ?? '',
+    contractType: row.contract_type ?? '',
+    avatarBg: row.avatar_bg ?? 'bg-blue-600',
     siteName: row.site_name ?? undefined,
     invitationStatus: row.invitation_status,
   };

@@ -163,6 +163,11 @@ export const LoginScreen: React.FC = () => {
       return;
     }
 
+    if (matchedInvitedEmployee.invitationStatus !== 'pending') {
+      setActivateError('This email already has a password. Go to Sign In instead.');
+      return;
+    }
+
     if (!pass || !confirm) {
       setActivateError(
         'Please enter and confirm your new password.'
@@ -418,8 +423,25 @@ export const LoginScreen: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Account already active: the lookup only says it exists */}
+                {matchedInvitedEmployee?.invitationStatus === 'active' && (
+                  <div className="p-3.5 rounded-2xl bg-blue-50/60 border border-blue-200 text-[11px] text-blue-800 flex items-center justify-between animate-in fade-in">
+                    <span>You already have a password.</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLoginEmail(activateEmail.trim().toLowerCase());
+                        setAuthMode('login');
+                      }}
+                      className="font-bold underline text-blue-700 hover:text-blue-900 cursor-pointer"
+                    >
+                      Go to Sign In →
+                    </button>
+                  </div>
+                )}
+
                 {/* Real-time Employee Match Card */}
-                {matchedInvitedEmployee && (
+                {matchedInvitedEmployee?.invitationStatus === 'pending' && (
                   <div className="p-3.5 rounded-2xl bg-blue-50/60 border border-blue-200 space-y-2.5 animate-in fade-in">
                     <div className="flex items-center justify-between pb-1.5 border-b border-blue-100">
                       <span className="text-[10px] font-bold text-emerald-700 flex items-center gap-1 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200">
@@ -454,27 +476,11 @@ export const LoginScreen: React.FC = () => {
                       </div>
                     )}
 
-                    {/* Notice if account is already active */}
-                    {matchedInvitedEmployee.invitationStatus === 'active' && (
-                      <div className="pt-2 border-t border-blue-100 text-[11px] text-blue-800 flex items-center justify-between">
-                        <span>You already have a password.</span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setLoginEmail(activateEmail.trim().toLowerCase());
-                            setAuthMode('login');
-                          }}
-                          className="font-bold underline text-blue-700 hover:text-blue-900 cursor-pointer"
-                        >
-                          Go to Sign In →
-                        </button>
-                      </div>
-                    )}
                   </div>
                 )}
 
-                {/* Show password fields if an invitation exists (or pending) */}
-                {matchedInvitedEmployee && (
+                {/* Password fields only while the invitation is pending */}
+                {matchedInvitedEmployee?.invitationStatus === 'pending' && (
                   <div className="space-y-3 pt-1 animate-in fade-in">
                     <div>
                       <label className="text-xs font-semibold text-slate-700 block mb-1">

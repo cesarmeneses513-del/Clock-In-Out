@@ -14,7 +14,7 @@ import {
 } from './utils/storage';
 import { supabase, isSupabaseConfigured } from './utils/supabase';
 import * as db from './utils/db';
-import { getDistanceMeters, watchLocation } from './utils/geo';
+import { getDistanceMeters, OutsideStreak, trackGeofenceExit, watchLocation } from './utils/geo';
 import { sound } from './utils/audio';
 import { dateInZone, siteTimeZone } from './utils/timezone';
 import { AlertTriangle, RefreshCw, X } from 'lucide-react';
@@ -70,6 +70,9 @@ export default function App() {
 
   // Prevent multiple duplicate auto-clockout triggers
   const isAutoClockingOutRef = useRef(false);
+
+  // Consecutive good GPS readings outside the geofence for the current shift (kept across re-subscriptions)
+  const outsideRef = useRef<OutsideStreak | null>(null);
 
   // Drops responses from reloads that were superseded by a newer one
   const reloadSeqRef = useRef(0);
@@ -374,27 +377,37 @@ export default function App() {
         currentSite.longitude!
       );
 
-      if (dist > currentSite.geofenceRadius!) {
-        isAutoClockingOutRef.current = true;
-        sound.playGeofenceAlert();
-        handleClockOut(
-          currentUser.id,
-          `[AUTOMATIC GEOFENCE CLOCK-OUT] Employee detected ${dist}m from the site (allowed radius: ${currentSite.geofenceRadius}m)`,
-          loc,
-          true
-        );
-        setGeofenceAlertModal({
-          employeeName: currentUser.name,
-          siteName: currentSite.name,
-          distance: dist,
-          radius: currentSite.geofenceRadius!,
-          time: new Date().toLocaleTimeString('en-AU', {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-          }),
-        });
-      }
+      // GPS jumps: only precise readings count, and several in a row over at least a minute
+      const { streak, left } = trackGeofenceExit(
+        outsideRef.current,
+        currentShift.id,
+        dist,
+        loc.accuracy,
+        currentSite.geofenceRadius!,
+        Date.now()
+      );
+      outsideRef.current = streak;
+      if (!left) return;
+
+      isAutoClockingOutRef.current = true;
+      sound.playGeofenceAlert();
+      handleClockOut(
+        currentUser.id,
+        `[AUTOMATIC GEOFENCE CLOCK-OUT] Employee detected ${dist}m from the site (allowed radius: ${currentSite.geofenceRadius}m)`,
+        loc,
+        true
+      );
+      setGeofenceAlertModal({
+        employeeName: currentUser.name,
+        siteName: currentSite.name,
+        distance: dist,
+        radius: currentSite.geofenceRadius!,
+        time: new Date().toLocaleTimeString('en-AU', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        }),
+      });
     });
 
     return () => {

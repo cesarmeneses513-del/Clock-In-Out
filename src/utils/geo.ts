@@ -51,6 +51,40 @@ export async function getLocationPermission(): Promise<PermissionState | 'unknow
   }
 }
 
+// Automatic geofence clock-out: ignore readings less precise than this, and require this many
+// consecutive readings outside the site spread over at least this long
+export const GEOFENCE_MAX_ACCURACY_M = 100;
+export const GEOFENCE_CONFIRM_READINGS = 3;
+export const GEOFENCE_CONFIRM_MS = 60_000;
+
+export interface OutsideStreak {
+  shiftId: string;
+  count: number;
+  since: number; // ms of the first reading outside
+}
+
+// One GPS reading against the site's geofence. Returns the new streak of readings outside
+// (null when back inside) and whether the worker has now really left. Vague readings change nothing.
+export function trackGeofenceExit(
+  prev: OutsideStreak | null,
+  shiftId: string,
+  distanceM: number,
+  accuracyM: number | undefined,
+  radiusM: number,
+  now: number
+): { streak: OutsideStreak | null; left: boolean } {
+  const accuracy = accuracyM ?? Infinity;
+  if (accuracy > GEOFENCE_MAX_ACCURACY_M) return { streak: prev, left: false };
+  // Outside only if even the nearest edge of the reading's error circle is beyond the radius
+  if (distanceM - accuracy <= radiusM) return { streak: null, left: false };
+  const streak =
+    prev && prev.shiftId === shiftId ? { ...prev, count: prev.count + 1 } : { shiftId, count: 1, since: now };
+  return {
+    streak,
+    left: streak.count >= GEOFENCE_CONFIRM_READINGS && now - streak.since >= GEOFENCE_CONFIRM_MS,
+  };
+}
+
 // Calculate distance in meters between two coordinates (Haversine)
 export function getDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371e3; // Earth radius in meters
