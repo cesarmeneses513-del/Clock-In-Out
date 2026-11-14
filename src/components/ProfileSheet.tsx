@@ -10,7 +10,7 @@ import {
   setReminderTime,
 } from '../utils/push';
 import { captureCurrentLocation, getLocationPermission } from '../utils/geo';
-import { LocationHelpSteps } from './LocationHelpSteps';
+import { isAppleDevice, LocationHelpSteps, StopAskingSteps } from './LocationHelpSteps';
 
 interface ProfileSheetProps {
   employee: Employee;
@@ -228,6 +228,7 @@ export const ProfileSheet: React.FC<ProfileSheetProps> = ({ employee, onClose, o
                 <LocationHelpSteps />
               </div>
             )}
+            {isAppleDevice && !showLocationHelp && <StopAskingSteps />}
           </div>
         </div>
 

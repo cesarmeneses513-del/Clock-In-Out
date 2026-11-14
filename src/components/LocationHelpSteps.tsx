@@ -1,6 +1,6 @@
 import React from 'react';
 
-const isAppleDevice =
+export const isAppleDevice =
   typeof navigator !== 'undefined' &&
   (/iPhone|iPad|iPod/.test(navigator.userAgent) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
@@ -35,3 +35,24 @@ export const LocationHelpSteps: React.FC = () =>
       <li>Return here and pull the screen down to refresh.</li>
     </ol>
   );
+
+// iPhone asks for location every time unless Safari websites are allowed "While Using the App"
+export const StopAskingSteps: React.FC = () => (
+  <details className="text-xs text-slate-700">
+    <summary className="font-bold text-blue-700 cursor-pointer">Does your iPhone ask every time you open the app?</summary>
+    <ol className="list-decimal pl-5 space-y-1.5 mt-2 font-medium">
+      <li>
+        Open <strong>Settings</strong> → <strong>Privacy &amp; Security</strong> → <strong>Location Services</strong>.
+      </li>
+      <li>
+        Scroll down to <strong>Safari Websites</strong> and choose <strong>While Using the App</strong> (keep{' '}
+        <strong>Precise Location</strong> on).
+      </li>
+      <li>
+        Optional: <strong>Settings</strong> → <strong>Apps</strong> → <strong>Safari</strong> → <strong>Location</strong> →{' '}
+        <strong>Allow</strong>.
+      </li>
+    </ol>
+    <p className="mt-1.5">It stays allowed until you change it there.</p>
+  </details>
+);
