@@ -22,15 +22,27 @@ import { sound } from '../utils/audio';
 // Supabase Auth default minimum password length
 const MIN_PASSWORD_LENGTH = 6;
 
+// An expired or already used email link comes back with an error in the URL (read before Supabase clears it)
+const LINK_ERROR =
+  typeof window !== 'undefined' && /error_code=otp_expired|error=access_denied/.test(window.location.hash + window.location.search)
+    ? 'This email link has expired or was already used. Request a new one below.'
+    : null;
+
 // Session changes are picked up by the auth listener in App, so no callbacks are needed here
 export const LoginScreen: React.FC = () => {
-  const [authMode, setAuthMode] = useState<'login' | 'create_password'>('login');
+  const [authMode, setAuthMode] = useState<'login' | 'create_password' | 'forgot'>('login');
+
+  // Forgot password: email the reset link
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetSent, setResetSent] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
+  const [isSendingReset, setIsSendingReset] = useState(false);
 
   // Login form state
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
-  const [loginError, setLoginError] = useState<string | null>(null);
+  const [loginError, setLoginError] = useState<string | null>(LINK_ERROR);
   const [pendingActivationPrompt, setPendingActivationPrompt] = useState<string | null>(null);
   const [isSubmittingLogin, setIsSubmittingLogin] = useState(false);
 
@@ -224,6 +236,40 @@ export const LoginScreen: React.FC = () => {
     }
   };
 
+  // The link in the email opens the app, which then asks for the new password (see App)
+  const handleResetSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetError(null);
+    const email = resetEmail.trim().toLowerCase();
+    if (!email) {
+      setResetError('Enter the email you sign in with.');
+      return;
+    }
+    setIsSendingReset(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin,
+    });
+    setIsSendingReset(false);
+    if (error) {
+      setResetError(
+        error.status === 429
+          ? 'Too many requests. Please wait a few minutes and try again.'
+          : `Could not send the email: ${error.message}`
+      );
+      return;
+    }
+    // Same message whether or not the email has an account
+    setResetSent(true);
+  };
+
+  const openForgot = () => {
+    setResetEmail(loginEmail);
+    setResetSent(false);
+    setResetError(null);
+    setLoginError(null);
+    setAuthMode('forgot');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f0f6ff] via-[#ffffff] to-[#e8f1fc] text-slate-900 flex flex-col justify-center items-center px-4 py-8 relative overflow-hidden font-sans selection:bg-blue-500/20 selection:text-blue-600">
       {/* Background ambient lighting - Soft Blue & Cyan CPR Glow */}
@@ -267,6 +313,8 @@ export const LoginScreen: React.FC = () => {
             <h2 className="text-sm font-bold text-slate-900 tracking-wide">
               {authMode === 'login'
                 ? 'Employee Sign In'
+                : authMode === 'forgot'
+                ? 'Reset Your Password'
                 : 'Set Access Password'}
             </h2>
           </div>
@@ -346,6 +394,16 @@ export const LoginScreen: React.FC = () => {
                   </div>
                 </div>
 
+                <div className="flex justify-end -mt-2">
+                  <button
+                    type="button"
+                    onClick={openForgot}
+                    className="text-xs font-bold text-blue-700 hover:text-blue-900 hover:underline cursor-pointer"
+                  >
+                    Forgot your password?
+                  </button>
+                </div>
+
                 <button
                   type="submit"
                   disabled={isSubmittingLogin}
@@ -377,6 +435,67 @@ export const LoginScreen: React.FC = () => {
                   </span>
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* VIEW 3: FORGOT PASSWORD */}
+          {authMode === 'forgot' && (
+            <div className="space-y-4">
+              {resetSent ? (
+                <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs space-y-1.5 animate-in fade-in">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 mt-0.5" />
+                    <span>
+                      If <strong>{resetEmail.trim().toLowerCase()}</strong> has an account, we sent it a link to reset
+                      the password. Open it on this phone.
+                    </span>
+                  </div>
+                  <p className="text-emerald-800 pl-6">Not there? Check the spam folder.</p>
+                </div>
+              ) : (
+                <form onSubmit={handleResetSubmit} className="space-y-4">
+                  <p className="text-xs text-slate-700">
+                    Enter the email you sign in with and we'll send you a link to choose a new password.
+                  </p>
+                  {resetError && (
+                    <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
+                      <span>{resetError}</span>
+                    </div>
+                  )}
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="email"
+                      required
+                      placeholder="name@example.com"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      className="w-full bg-white border-2 border-slate-300 rounded-xl pl-10 pr-3.5 py-2.5 text-xs sm:text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-colors shadow-2xs"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={isSendingReset}
+                    className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-black text-xs sm:text-sm shadow-md shadow-blue-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  >
+                    <Mail className="w-4 h-4 text-white" />
+                    <span>{isSendingReset ? 'SENDING...' : 'SEND RESET LINK'}</span>
+                  </button>
+                </form>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthMode('login');
+                  if (resetEmail) setLoginEmail(resetEmail.trim().toLowerCase());
+                }}
+                className="w-full pt-3 border-t border-slate-200 text-xs font-bold text-slate-700 hover:text-slate-900 flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                Back to Sign In
+              </button>
             </div>
           )}
 

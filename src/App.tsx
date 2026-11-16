@@ -26,9 +26,14 @@ import { TimesheetsView } from './components/TimesheetsView';
 import { TeamManagement } from './components/TeamManagement';
 import { ManualEntryModal } from './components/ManualEntryModal';
 import { LoginScreen } from './components/LoginScreen';
+import { SetNewPasswordScreen } from './components/SetNewPasswordScreen';
 import { ReminderPrompt } from './components/ReminderPrompt';
 import { ProfileSheet } from './components/ProfileSheet';
 import { removeReminderSubscription, syncReminderSubscription } from './utils/push';
+
+// Opened from a password-reset email: read before Supabase consumes the link
+const OPENED_FROM_RESET_LINK =
+  typeof window !== 'undefined' && /type=recovery/.test(window.location.hash + window.location.search);
 
 const StatusScreen: React.FC<{ title: string; children?: React.ReactNode }> = ({ title, children }) => (
   <div className="min-h-screen flex flex-col items-center justify-center px-4 font-sans bg-gradient-to-br from-[#f0f6ff] via-[#ffffff] to-[#e8f1fc] text-slate-900">
@@ -47,6 +52,8 @@ export default function App() {
   // Supabase Auth session
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(false);
+  // Signed in by a reset link: ask for the new password before showing the app
+  const [settingNewPassword, setSettingNewPassword] = useState(OPENED_FROM_RESET_LINK);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const userId = session?.user.id;
@@ -86,8 +93,9 @@ export default function App() {
       setSession(data.session);
       setAuthReady(true);
     });
-    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession);
+      if (event === 'PASSWORD_RECOVERY') setSettingNewPassword(true);
     });
     return () => data.subscription.unsubscribe();
   }, []);
@@ -532,6 +540,10 @@ export default function App() {
   // If no user is authenticated, show login screen
   if (!session) {
     return <LoginScreen />;
+  }
+
+  if (settingNewPassword) {
+    return <SetNewPasswordScreen onDone={() => setSettingNewPassword(false)} />;
   }
 
   if (!dataLoaded) {
